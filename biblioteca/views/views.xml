@@ -1,91 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <data>
-    <!-- explicit list view definition -->
-
-    <record model="ir.ui.view" id="view_biblioteca_libro_list">
-      <field name="name">biblioteca libro list</field>
-      <field name="model">biblioteca.libro</field>
-      <field name="arch" type="xml">
-        <list>
-          <field name="firstname"/>
-          <field name="value"/>
-          <field name="value2"/>
-        </list>
-      </field>
-    </record>
-
-    <record model="ir.ui.view" id="view_biblioteca_libro_form">
-      <field name="name">biblioteca libro form</field>
-      <field name="model">biblioteca.libro</field>
-      <field name="arch" type="xml">
-        <form>
-          <group>
-            <field name="firstname"/>
-            <field name="author"/>
-            <field name="value"/>
-            <field name="value2"/>
-            <field name="description"/>
-          </group>
-        </form>
-      </field>
-    </record>
-
-
-    <record model="ir.ui.view" id="view_biblioteca_autor_list">
-        <field name="name">biblioteca autor list</field>
-        <field name="model">biblioteca.autor</field>
+    <record id="view_genre_form" model="ir.ui.view">
+        <field name="name">biblioteca.genre.form</field>
+        <field name="model">biblioteca.genre</field>
         <field name="arch" type="xml">
-          <list>
-            <group>
-              <field name="firstname"/>
-              <field name="lastname"/>
-            </group>
-          </list>
+            <form string="Género">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                    </group>
+                </sheet>
+            </form>
         </field>
-
-    <!-- actions opening views on models -->
-
-    <record model="ir.actions.act_window" id="biblioteca_libro_action_window">
-      <field name="name">biblioteca.libro window</field>
-      <field name="res_model">biblioteca.libro</field>
-      <field name="view_mode">list,form</field>
     </record>
 
-
-    <!-- server action to the one above -->
-
-    <record model="ir.actions.server" id="biblioteca_action_server">
-      <field name="name">biblioteca libro server</field>
-      <field name="model_id" ref="model_biblioteca_libro"/>
-      <field name="state">code</field>
-      <field name="code">
-        action = {
-          "type": "ir.actions.act_window",
-          "view_mode": "list,form",
-          "res_model": model._name,
-        }
-      </field>
+    <record id="view_author_form" model="ir.ui.view">
+        <field name="name">biblioteca.author.form</field>
+        <field name="model">biblioteca.author</field>
+        <field name="arch" type="xml">
+            <form string="Autor">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                    </group>
+                    <notebook>
+                        <page string="Biografía">
+                            <field name="biography"/>
+                        </page>
+                        <page string="Libros Publicados">
+                            <field name="book_ids" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
     </record>
 
+    <record id="view_book_form" model="ir.ui.view">
+        <field name="name">biblioteca.book.form</field>
+        <field name="model">biblioteca.book</field>
+        <field name="arch" type="xml">
+            <form string="Libro">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="author_id"/>
+                            <field name="genre_ids" widget="many2many_tags"/>
+                        </group>
+                        <group>
+                            <field name="isbn"/>
+                            <field name="publication_date"/>
+                            <field name="is_available"/>
+                        </group>
+                    </group>
+                    <notebook>
+                         <page string="Descripción">
+                            <field name="description"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
 
-    <!-- Top menu item -->
+    <record id="view_book_tree" model="ir.ui.view">
+        <field name="name">biblioteca.book.tree</field>
+        <field name="model">biblioteca.book</field>
+        <field name="arch" type="xml">
+            <tree string="Libros">
+                <field name="name"/>
+                <field name="author_id"/>
+                <field name="publication_date"/>
+                <field name="is_available" decoration-danger="not is_available" decoration-success="is_available"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_author_tree" model="ir.ui.view">
+        <field name="name">biblioteca.author.tree</field>
+        <field name="model">biblioteca.author</field>
+        <field name="arch" type="xml">
+            <tree string="Autores">
+                <field name="name"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_genre_tree" model="ir.ui.view">
+        <field name="name">biblioteca.genre.tree</field>
+        <field name="model">biblioteca.genre</field>
+        <field name="arch" type="xml">
+            <tree string="Géneros">
+                <field name="name"/>
+            </tree>
+        </field>
+    </record>
 
-    <menuitem name="Biblioteca" id="biblioteca_menu"/>
+    <record id="action_book" model="ir.actions.act_window">
+        <field name="name">Libros</field>
+        <field name="res_model">biblioteca.book</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <record id="action_author" model="ir.actions.act_window">
+        <field name="name">Autores</field>
+        <field name="res_model">biblioteca.author</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <record id="action_genre" model="ir.actions.act_window">
+        <field name="name">Géneros</field>
+        <field name="res_model">biblioteca.genre</field>
+        <field name="view_mode">tree,form</field>
+    </record>
 
-    <menuitem name="Libro"
-    <menuitem name="Libro" id="biblioteca_libro_menu" parent="biblioteca.menu_root" action="biblioteca_libro_action_window"/>
+    <menuitem id="menu_biblioteca_root" name="Biblioteca Simple" sequence="10"/>
+    <menuitem id="menu_book" name="Libros" parent="menu_biblioteca_root" action="action_book" sequence="10"/>
+    <menuitem id="menu_author" name="Autores" parent="menu_biblioteca_root" action="action_author" sequence="20"/>
+    
+    <menuitem id="menu_biblioteca_config" name="Configuración" parent="menu_biblioteca_root" sequence="100"/>
+    <menuitem id="menu_genre" name="Géneros" parent="menu_biblioteca_config" action="action_genre" sequence="30"/>
 
-    <!-- menu categories -->
-<!--
-    <menuitem name="Menu 1" id="biblioteca.menu_1" parent="biblioteca.menu_root"/>
-    <menuitem name="Menu 2" id="biblioteca.menu_2" parent="biblioteca.menu_root"/>
--->
-    <!-- actions -->
-<!--
-    <menuitem name="List" id="biblioteca.menu_1_list" parent="biblioteca.menu_1"
-              action="biblioteca_libro_action_window"/>
-    <menuitem name="Server to list" id="biblioteca" parent="biblioteca.menu_2"
-              action="biblioteca_libro_action_window"/>
--->
-  </data>
 </odoo>
