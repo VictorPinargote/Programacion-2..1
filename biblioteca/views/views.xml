@@ -55,7 +55,8 @@
                     <group>
                         <group>
                             <field name="nombre_completo"/>
-                            <field name="cedula"/> </group>
+                            <field name="cedula"/>
+                        </group>
                         <group>
                             <field name="email"/>
                             <field name="telefono"/>
@@ -80,24 +81,36 @@
         <field name="arch" type="xml">
             <form string="Préstamo">
                 <header>
+                    <button name="accion_confirmar_prestamo" type="object" string="Confirmar Préstamo" class="oe_highlight"
+                            invisible="estado != 'borrador'"/>
+
                     <button name="accion_devolver_libro" type="object" string="Devolver Libro" class="oe_highlight"
-                            invisible="estado == 'devuelto'"/>
-                    <field name="estado" widget="statusbar" statusbar_visible="prestado,devuelto"/>
+                            invisible="estado != 'prestado'"/>
+                            
+                    <button name="accion_cancelar" type="object" string="Cancelar"
+                            invisible="estado != 'borrador'"/>
+                    
+                    <button name="multa_id" type="object" string="Ver Multa" class="oe_highlight"
+                            invisible="not multa_id"/>
+
+                    <field name="estado" widget="statusbar" statusbar_visible="borrador,prestado,devuelto"/>
                 </header>
                 <sheet>
                     <group>
                         <group>
                             <field name="usuario_id"/>
                             <field name="libro_id"/>
+                            <field name="dias_prestamo"/>
                         </group>
                         <group>
                             <field name="fecha_prestamo"/>
-                            <field name="dias_prestamo" invisible="estado == 'devuelto'"/>
                             <field name="fecha_prevista_devolucion" readonly="1"/>
-                            <field name="fecha_devolucion_real" readonly="1"/>
+                            <field name="fecha_devolucion_real" readonly="1" invisible="estado != 'devuelto'"/>
+                            <field name="dias_retraso" readonly="1" invisible="dias_retraso == 0"/>
                         </group>
                     </group>
-                    <field name="multa_id" invisible="not multa_id"/>
+                    
+                    <field name="multa_id" invisible="1"/>
                 </sheet>
             </form>
         </field>
@@ -176,7 +189,7 @@
         <field name="name">biblioteca.prestamo.tree</field>
         <field name="model">biblioteca.prestamo</field>
         <field name="arch" type="xml">
-            <tree string="Préstamos" decoration-success="estado == 'devuelto'" decoration-warning="estado == 'vencido'">
+            <tree string="Préstamos" decoration-success="estado == 'devuelto'" decoration-warning="estado == 'prestado'">
                 <field name="usuario_id"/>
                 <field name="libro_id"/>
                 <field name="fecha_prevista_devolucion"/>
