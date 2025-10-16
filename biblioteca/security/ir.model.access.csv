@@ -1,7 +1,7 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_user_user,Acceso a Usuarios,model_biblioteca_usuario,,1,1,1,0
-access_prestamo_user,Acceso a Prestamos,model_biblioteca_prestamo,,1,1,1,1
-access_multa_user,Acceso a Multas,model_biblioteca_multa,,1,1,1,1
-access_libro_user,Acceso a Libros,model_biblioteca_libro,,1,1,1,0
-access_autor_user,Acceso a Autores,model_biblioteca_autor,,1,1,1,0
-access_genero_user,Acceso a Generos,model_biblioteca_genero,,1,1,1,0
+access_usuario_user,Acceso a Usuarios,model_biblioteca_usuario,base.group_user,1,1,1,0
+access_prestamo_user,Acceso a Prestamos,model_biblioteca_prestamo,base.group_user,1,1,1,1
+access_multa_user,Acceso a Multas,model_biblioteca_multa,base.group_user,1,1,1,1
+access_libro_user,Acceso a Libros,model_biblioteca_libro,base.group_user,1,1,1,0
+access_autor_user,Acceso a Autores,model_biblioteca_autor,base.group_user,1,1,1,0
+access_genero_user,Acceso a Generos,model_biblioteca_genero,base.group_user,1,1,1,0
