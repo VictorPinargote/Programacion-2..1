@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Plantilla de correo para notificación de multa -->
+        <record id="email_template_notificacion_multa" model="mail.template">
+            <field name="name">Notificación de Multa por Retraso</field>
+            <field name="model_id" ref="model_biblioteca_prestamo"/>
+            <field name="subject">⚠️ Notificación de Multa - Préstamo ${object.name}</field>
+            <field name="email_from">${(object.company_id.email or 'biblioteca@ejemplo.com')|safe}</field>
+            <field name="email_to">${object.email_lector|safe}</field>
+            <field name="body_html" type="html">
+<![CDATA[
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f4f4f4; padding: 20px;">
+    
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">📚 Biblioteca Digital</h1>
+        <p style="color: #f0f0f0; margin: 10px 0 0 0; font-size: 14px;">Sistema de Gestión de Préstamos</p>
+    </div>
+    
+    <!-- Body -->
+    <div style="background-color: white; padding: 40px 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        
+        <!-- Alerta de multa -->
+        <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
+            <h2 style="color: #856404; margin: 0 0 10px 0; font-size: 20px;">⚠️ Notificación de Multa</h2>
+            <p style="color: #856404; margin: 0; font-size: 14px;">
+                Se ha generado una multa por retraso en la devolución del libro prestado.
+            </p>
+        </div>
+        
+        <!-- Información del lector -->
+        <div style="margin-bottom: 25px;">
+            <h3 style="color: #333; font-size: 16px; margin-bottom: 10px;">Estimado(a) ${object.usuario_id.name},</h3>
+            <p style="color: #666; line-height: 1.6; font-size: 14px;">
+                Le informamos que el libro <strong>"${object.libro_id.titulo}"</strong> que tiene en préstamo 
+                ha superado la fecha máxima de devolución establecida.
+            </p>
+        </div>
+        
+        <!-- Detalles del préstamo -->
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+            <h3 style="color: #333; font-size: 16px; margin-top: 0; border-bottom: 2px solid #667eea; padding-bottom: 10px;">
+                📋 Detalles del Préstamo
+            </h3>
+            
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px;">
+                        <strong>Código de Préstamo:</strong>
+                    </td>
+                    <td style="padding: 8px 0; color: #333; font-size: 14px; text-align: right;">
+                        ${object.name}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px;">
+                        <strong>Libro:</strong>
+                    </td>
+                    <td style="padding: 8px 0; color: #333; font-size: 14px; text-align: right;">
+                        ${object.libro_id.titulo}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px;">
+                        <strong>Fecha de Préstamo:</strong>
+                    </td>
+                    <td style="padding: 8px 0; color: #333; font-size: 14px; text-align: right;">
+                        ${format_datetime(object.fecha_prestamo, tz='America/Guayaquil', dt_format='dd/MM/yyyy HH:mm')}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px;">
+                        <strong>Fecha Máxima de Devolución:</strong>
+                    </td>
+                    <td style="padding: 8px 0; color: #dc3545; font-size: 14px; text-align: right;">
+                        <strong>${format_datetime(object.fecha_maxima, tz='America/Guayaquil', dt_format='dd/MM/yyyy HH:mm')}</strong>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Información de la multa -->
+        <div style="background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%); padding: 20px; border-radius: 8px; margin-bottom: 25px; text-align: center;">
+            <h3 style="color: #2d3436; font-size: 16px; margin-top: 0;">💰 Multa Generada</h3>
+            
+            <div style="background-color: rgba(255,255,255,0.9); padding: 15px; border-radius: 6px; margin: 15px 0;">
+                <div style="font-size: 14px; color: #636e72; margin-bottom: 10px;">Días de retraso</div>
+                <div style="font-size: 32px; font-weight: bold; color: #d63031; margin-bottom: 5px;">
+                    ${object.dias_retraso}
+                </div>
+                <div style="font-size: 12px; color: #636e72;">días</div>
+            </div>
+            
+            <div style="background-color: rgba(255,255,255,0.9); padding: 15px; border-radius: 6px;">
+                <div style="font-size: 14px; color: #636e72; margin-bottom: 10px;">Monto total a pagar</div>
+                <div style="font-size: 36px; font-weight: bold; color: #d63031;">
+                    $${'{:.2f}'.format(object.multa)}
+                </div>
+                <div style="font-size: 12px; color: #636e72; margin-top: 5px;">
+                    (Tarifa: $1.00 USD por día de retraso)
+                </div>
+            </div>
+        </div>
+        
+        <!-- Instrucciones de pago -->
+        <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+            <h3 style="color: #1976d2; font-size: 16px; margin-top: 0;">
+                📝 Instrucciones para Cancelar la Multa
+            </h3>
+            <ol style="color: #424242; line-height: 1.8; font-size: 14px; margin: 0; padding-left: 20px;">
+                <li>Devuelva el libro a la biblioteca lo antes posible</li>
+                <li>Diríjase al área de atención al cliente</li>
+                <li>Presente su cédula de identidad</li>
+                <li>Realice el pago de la multa</li>
+                <li>Solicite su comprobante de pago</li>
+            </ol>
+        </div>
+        
+        <!-- Recordatorio importante -->
+        <div style="background-color: #ffebee; border-left: 4px solid #f44336; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
+            <h4 style="color: #c62828; margin: 0 0 10px 0; font-size: 14px;">
+                ⚡ Recordatorio Importante
+            </h4>
+            <p style="color: #b71c1c; margin: 0; font-size: 13px; line-height: 1.6;">
+                Mientras tenga multas pendientes, no podrá realizar nuevos préstamos. 
+                Le recomendamos regularizar su situación a la brevedad posible.
+            </p>
+        </div>
+        
+        <!-- Información de contacto -->
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+            <p style="color: #666; font-size: 13px; margin: 5px 0;">
+                <strong>Biblioteca Digital</strong>
+            </p>
+            <p style="color: #999; font-size: 12px; margin: 5px 0;">
+                📧 biblioteca@ejemplo.com | 📞 (593) 2-234-5678
+            </p>
+            <p style="color: #999; font-size: 12px; margin: 5px 0;">
+                📍 Av. Principal #123, Quito - Ecuador
+            </p>
+        </div>
+        
+        <!-- Mensaje de cierre -->
+        <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+            <p style="color: #666; font-size: 13px; line-height: 1.6; text-align: center;">
+                Este es un mensaje automático generado por el sistema. 
+                Por favor, no responda a este correo.
+            </p>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div style="text-align: center; padding: 20px; color: #999; font-size: 11px;">
+        <p style="margin: 0;">© ${datetime.datetime.now().year} Biblioteca Digital. Todos los derechos reservados.</p>
+        <p style="margin: 5px 0 0 0;">Sistema de Gestión de Préstamos v2.0</p>
+    </div>
+</div>
+]]>
+            </field>
+        </record>
+        
+    </data>
+</odoo>
