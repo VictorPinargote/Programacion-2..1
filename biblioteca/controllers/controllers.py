@@ -19,3 +19,4 @@
 #         return http.request.render('biblioteca.object', {
 #             'object': obj
 #         })
+

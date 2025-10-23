@@ -1,0 +1,8 @@
+<odoo>
+    <data>
+        <record id = "cron_codigo_prestamos" model ="ir.cron">
+            <field name = "name">Acción crear código de prestamos </field>
+            <field name = "interval_number">1</field>
+        </record>
+    </data>
+</odoo>
