@@ -119,8 +119,9 @@ class BibliotecaLibro(models.Model):
 class BibliotecaUsuario(models.Model):
     _name = 'biblioteca.usuario'
     _description = 'Usuario/Lector de la Biblioteca'
-    _inherit = ['res.partner']
+    _inherits = {'res.partner': 'partner_id'}
 
+    partner_id = fields.Many2one('res.partner', required=True, ondelete='cascade', string='Contacto')
     cedula = fields.Char(string='Cédula')
     prestamo_ids = fields.One2many('biblioteca.prestamo', 'usuario_id', string='Préstamos Realizados')
     multa_ids = fields.One2many('biblioteca.multa', 'usuario_id', string='Multas')
@@ -225,4 +226,3 @@ class BibliotecaMulta(models.Model):
     def action_pagar(self):
         self.ensure_one()
         self.state = 'pagada'
-
