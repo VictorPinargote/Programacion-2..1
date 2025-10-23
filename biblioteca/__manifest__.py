@@ -5,7 +5,25 @@
     'summary': "Short (1 phrase/line) summary of the module's purpose",
 
     'description': """
-Long description of module's purpose
+Sistema de Gestión de Biblioteca
+==================================
+
+Características principales:
+* Gestión de libros, autores y editoriales
+* Sistema de préstamos con fechas automáticas
+* Búsqueda integrada con OpenLibrary API
+* **Generación automática de multas por retraso**
+* **Envío automático de correos electrónicos a lectores**
+* Configuración personalizable de días de préstamo y multas
+* Validación de cédula ecuatoriana
+* Historial completo de préstamos y multas
+
+Sistema de Notificaciones Automáticas:
+* Cron job que verifica préstamos vencidos diariamente
+* Envío automático de correos cuando se genera una multa
+* Días de gracia configurables antes de enviar notificación
+* Plantillas de correo profesionales y personalizadas
+* Cálculo automático de multas por día de retraso
     """,
 
     'author': "My Company",
@@ -18,27 +36,45 @@ Long description of module's purpose
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base'],
+    'depends': [
+        'base',
+        'mail',  # Necesario para el sistema de correos
+    ],
     
-    # always loaded
+    # Archivos de datos que se cargan siempre
     'data': [
+        # Seguridad
         'security/ir.model.access.csv',
+        # Secuencias
+        'data/sequence.xml',
+        # Plantilla de correo (debe cargarse antes de las vistas)
+        'data/email_template.xml',
+        # Cron job para verificación automática
+        'data/cron.xml',
+        # Vistas principales
         'views/views.xml',
+        # Vista de configuración
+        'views/configuracion_views.xml',
         #'views/template.xml'
-        'data/sequence.xml'
         #'views/templates.xml',
     ],
+    
     # only loaded in demonstration mode
     #'demo': [
      #   'demo/demo.xml',
     #],
+    
+    # Assets para JavaScript
     'assets': {
-    'web.assets_backend': [
-        'biblioteca/static/src/widgets/openlibrary_search_widget.js',
-    ],
+        'web.assets_backend': [
+            'biblioteca/static/src/widgets/openlibrary_search_widget.js',
+        ],
     },
+    
     'application': True,
-    'license': 'AGPL-3'
+    'installable': True,
+    'auto_install': False,
+    'license': 'AGPL-3',
 }
 
 #12.5.0 Nos indica que cambio ha tenido el software, el tercero, son cosas pequeñas tipo errores ortograficos, errores que habia, el segundo es el cambio de la lógica, y el primero es un cambio mucho mas robuzto que cambia toda la estructura.*/
