@@ -2,339 +2,299 @@
 <odoo>
   <data>
 
+    <!-- Actions -->
     <record model="ir.actions.act_window" id="biblioteca_libro_action_window">
       <field name="name">Libros</field>
       <field name="res_model">biblioteca.libro</field>
-      <field name="view_mode">list,form</field>
+      <field name="view_mode">tree,form</field>
     </record>
 
     <record model="ir.actions.act_window" id="biblioteca_autor_action_window">
       <field name="name">Autores</field>
       <field name="res_model">biblioteca.autor</field>
-      <field name="view_mode">list,form</field>
+      <field name="view_mode">tree,form</field>
+    </record>
+
+    <record model="ir.actions.act_window" id="biblioteca_editorial_action_window">
+      <field name="name">Editoriales</field>
+      <field name="res_model">biblioteca.editorial</field>
+      <field name="view_mode">tree,form</field>
     </record>
 
     <record model="ir.actions.act_window" id="biblioteca_usuario_action_window">
-      <field name="name">Usuarios (Lectores)</field>
+      <field name="name">Usuarios</field>
       <field name="res_model">biblioteca.usuario</field>
-      <field name="view_mode">list,form</field>
+      <field name="view_mode">tree,form</field>
     </record>
 
     <record model="ir.actions.act_window" id="biblioteca_prestamo_action_window">
       <field name="name">Préstamos</field>
       <field name="res_model">biblioteca.prestamo</field>
-      <field name="view_mode">list,form</field>
-      <field name="help" type="html">
-        <p class="o_view_nocontent_smiling_face">Crea un nuevo registro de préstamo.</p>
-      </field>
+      <field name="view_mode">tree,form</field>
     </record>
 
     <record model="ir.actions.act_window" id="biblioteca_multa_action_window">
       <field name="name">Multas</field>
       <field name="res_model">biblioteca.multa</field>
-      <field name="view_mode">list,form</field>
-      <field name="help" type="html">
-        <p class="o_view_nocontent_smiling_face">No hay multas que mostrar.</p>
-      </field>
+      <field name="view_mode">tree,form</field>
     </record>
 
-<<<<<<< HEAD
-    <record model="ir.ui.view" id="biblioteca_libro_list"> 
-      <field name="name">biblioteca list</field>
+    <!-- Views: Libro -->
+    <record model="ir.ui.view" id="biblioteca_libro_tree">
+      <field name="name">biblioteca.libro.tree</field>
       <field name="model">biblioteca.libro</field>
       <field name="arch" type="xml">
-        <list>
+        <tree>
           <field name="titulo"/>
-          <field name="ejemplares"/>
-          <field name="costo"/>
-=======
-    <record model="ir.ui.view" id="biblioteca_libro_list">
-      <field name="name">biblioteca.libro.list</field>
-      <field name="model">biblioteca.libro</field>
-      <field name="arch" type="xml">
-        <list>
-          <field name="firstname"/>
           <field name="autor"/>
-          <field name="value" string="Ejemplares"/>
-          <field name="available" widget="badge" decoration-success="available == True" decoration-danger="available == False"/>
->>>>>>> af55d42a15e094a5b11bbaeba0f86826dd6b5ffe
-        </list>
+          <field name="ejemplares"/>
+          <field name="isbn"/>
+        </tree>
       </field>
     </record>
 
-<<<<<<< HEAD
-  <!-- VISTAS PARA LIBRO -->
-    <record model="ir.ui.view" id="biblioteca_libro_form"> 
-      <field name="name">biblioteca libro form</field>
-      <field name="model">biblioteca.libro</field>
-      <field name="arch" type="xml">
-        <form string = "Libro">
-          <header>
-                  <button name="action_buscar_openlibrary"
-                          string="Buscar en OpenLibrary"
-                          type="object"
-                          class="oe_highlight"/>
-          </header>
-          <group>
-              <field name="firstname" placeholder="Ej: Harry Potter"/>
-              <field name="titulo"/>
-              <field name="author"/>
-              <field name="editorial"/>
-              <field name ="genero"/>
-              <field name="isbn"/>
-              <field name="ejemplares"/>
-              <field name="costo"/>
-              <field name="description"/>
-              <field name="fecha_publicacion"/>
-              <field name="paginas"/>
-          </group>
-        </form>
-      </field>
-    </record>
-<!-- VISTAS PARA AUTOR -->
-     <record model="ir.ui.view" id="biblioteca_autor_list"> 
-      <field name="name">biblioteca autor list</field>
-=======
     <record model="ir.ui.view" id="biblioteca_libro_form">
       <field name="name">biblioteca.libro.form</field>
       <field name="model">biblioteca.libro</field>
       <field name="arch" type="xml">
-        <form>
+        <form string="Libro">
+          <header>
+            <button name="action_buscar_openlibrary" type="object" string="Buscar en OpenLibrary" class="oe_highlight"/>
+          </header>
+          <sheet>
             <group>
-              <group>
-                <field name="firstname"/>
-                <field name="autor"/>
-                <field name="value"/>
-              </group>
-              <group>
-                <field name="available" readonly="1"/>
-                <field name="value2" readonly="1" string="Costo de Referencia"/>
-              </group>
+              <field name="firstname"/>
+              <field name="titulo"/>
+              <field name="autor"/>
+              <field name="editorial"/>
+              <field name="genero"/>
+              <field name="isbn"/>
+              <field name="ejemplares"/>
+              <field name="costo"/>
             </group>
-            <field name="description"/>
+            <group>
+              <field name="description"/>
+              <field name="fecha_publicacion"/>
+              <field name="paginas"/>
+              <field name="ubicacion"/>
+            </group>
             <notebook>
-                <page string="Historial de Préstamos">
-                    <field name="prestamo_ids" readonly="1">
-                        <list>
-                            <field name="name" reandoly ="estado in ('p','d','m')" nolabel="1"/>
-                            <field name="fecha_prestamo" reandoly ="estado in ('p','d','m')"/>
-                            <field name="fecha_devolucion" reandoly ="estado in ('p','d','m')" required="estado in ('p','m')"/>
-                            <field name="libro_id" reandoly ="estado in ('p','d','m')"/>
-                            <field name="usuario_id" reandoly ="estado in ('p','d','m')"/>
-                            <field name="multa_bol" reandoly ="estado in ('p','d','m')"/>
-                            <field name="multa" reandoly ="estado in ('p','d','m')" invisible= "multa_bol == False" />
-                            <field name="fecha_maxima" reandoly ="estado in ('p','d','m')"/>
-                            <field name="usuario" reandoly ="estado in ('p','d','m')"/>
-                        </list>
-                    </field>
-                </page>
+              <page string="Historial de Préstamos">
+                <field name="prestamo_ids">
+                  <tree>
+                    <field name="name"/>
+                    <field name="fecha_prestamo"/>
+                    <field name="fecha_devolucion"/>
+                    <field name="usuario_id"/>
+                    <field name="estado"/>
+                  </tree>
+                </field>
+              </page>
             </notebook>
+          </sheet>
         </form>
       </field>
     </record>
-    
-    <record model="ir.ui.view" id="biblioteca_autor_list">
-      <field name="name">biblioteca.autor.list</field>
->>>>>>> af55d42a15e094a5b11bbaeba0f86826dd6b5ffe
+
+    <!-- Views: Autor -->
+    <record model="ir.ui.view" id="biblioteca_autor_tree">
+      <field name="name">biblioteca.autor.tree</field>
       <field name="model">biblioteca.autor</field>
       <field name="arch" type="xml">
-        <list>
+        <tree>
           <field name="firstname"/>
           <field name="lastname"/>
-        </list>
+        </tree>
       </field>
     </record>
 
-<<<<<<< HEAD
-    <record model="ir.ui.view" id="biblioteca_autor_form"> 
-      <field name="name">biblioteca autor form</field>
-      <field name="model">biblioteca.autor</field>
-      <field name="arch" type="xml">
-        <form>
-          <group>
-          <field name="firstname"/>
-          <field name="lastname"/>
-          <field name="nacimiento"/>
-          <field name="libros"/>
-          </group>
-=======
     <record model="ir.ui.view" id="biblioteca_autor_form">
       <field name="name">biblioteca.autor.form</field>
       <field name="model">biblioteca.autor</field>
       <field name="arch" type="xml">
         <form>
->>>>>>> af55d42a15e094a5b11bbaeba0f86826dd6b5ffe
-        </form>
-      </field>
-    </record>
-
-<<<<<<< HEAD
-<!--VISTAS PARA PRESTAMO-->
-
-
-    <record model="ir.ui.view" id="biblioteca_prestamo_list">
-      <field name="name">biblioteca.prestamo.list</field>
-      <field name="model">biblioteca.prestamo</field>
-      <field name="arch" type="xml">
-        <list string="Préstamos">
-          <field name="name"/>
-          <field name="fecha_prestamo"/>
-          <field name="libro_id"/>
-          <field name="usuario_id"/>
-          <field name="multa"/>
-          <field name="estado"/>
-        </list>
-      </field>
-    </record>
-
-    <record model="ir.ui.view" id="biblioteca_prestamo_form">
-      <field name="name">biblioteca.prestamo.form</field>
-      <field name="model">biblioteca.prestamo</field>
-      <field name="arch" type="xml">
-        <form string="Préstamo">
-          <header>
-            <button string="Prestar" 
-                    type="object" 
-                    name="generar_prestamo" 
-                    class="btn-primary"
-                    invisible="estado in ('p','d','m')"/>
-            <field name="estado" widget="statusbar"/>
-          </header>
           <sheet>
             <group>
-              <label for="name" string="Código de préstamo"/>
-              <field name="name" readonly="estado in ('p','d','m')" nolabel="1"/>
-              
-              <field name="fecha_prestamo" readonly="estado in ('p','d','m')"/>
-              <field name="fecha_devolucion" readonly="estado in ('p','d','m')" required="estado in('p','m')"/>
-              <field name="libro_id" readonly="estado in ('p','d','m')"/>
-              <field name="usuario_id" readonly="estado in ('p','d','m')"/>
-              <field name="multa_bol" readonly="estado in ('p','d','m')"/>
-              <field name="multa" readonly="estado in ('p','d','m')" invisible="multa_bol == False"/>
-              <field name="fecha_maxima" readonly="estado in ('p','d','m')"/>
-              <field name="usuario" readonly="estado in ('p','d','m')"/>
+              <field name="firstname"/>
+              <field name="lastname"/>
+              <field name="nacimiento"/>
+              <field name="libro_ids"/>
             </group>
           </sheet>
         </form>
       </field>
     </record>
 
-<!--VISTAS PARA MULTA-->    
-
-    <record model="ir.actions.act_window" id="biblioteca_libro_action_window">
-      <field name="name">biblioteca libro window</field>
-      <field name="res_model">biblioteca.libro</field>
-      <field name="view_mode">list,form</field>
-    </record>
-    
-    <record model="ir.actions.act_window" id="biblioteca_autor_action_window">
-      <field name="name">biblioteca autores</field>
-      <field name="res_model">biblioteca.autor</field>
-      <field name="view_mode">list,form</field>
-    </record>
-    <record model="ir.actions.act_window" id="biblioteca_editorial_action_window">
-      <field name="name">biblioteca editoriales</field>
-      <field name="res_model">biblioteca.editorial</field>
-      <field name="view_mode">list,form</field>
-    </record>
-
-    <record model="ir.actions.act_window" id="biblioteca_usuario_action_window">
-      <field name="name">biblioteca usuarios</field>
-      <field name="res_model">biblioteca.usuario</field>
-      <field name="view_mode">list,form</field>
-    </record>
-
-    <record model="ir.actions.act_window" id="biblioteca_personal_action_window">
-      <field name="name">biblioteca personal</field>
-      <field name="res_model">biblioteca.personal</field>
-      <field name="view_mode">list,form</field>
-    </record>
-
-    <record model="ir.actions.act_window" id="biblioteca_prestamo_action_window">
-      <field name="name">biblioteca prestamos</field>
-      <field name="res_model">biblioteca.prestamo</field>
-      <field name="view_mode">list,form</field>
-    </record>
-
-
-    <!-- server action to the one above -->
-<!--
-    <record model="ir.actions.server" id="biblioteca.action_server">
-      <field name="name">biblioteca server</field>
-      <field name="model_id" ref="model_biblioteca_biblioteca"/>
-      <field name="state">code</field>
-      <field name="code">
-        action = {
-          "type": "ir.actions.act_window",
-          "view_mode": "list,form",
-          "res_model": model._name,
-        }
-=======
-    <record model="ir.ui.view" id="biblioteca_usuario_list">
-      <field name="name">biblioteca.usuario.list</field>
-      <field name="model">biblioteca.usuario</field>
+    <!-- Views: Editorial -->
+    <record model="ir.ui.view" id="biblioteca_editorial_tree">
+      <field name="name">biblioteca.editorial.tree</field>
+      <field name="model">biblioteca.editorial</field>
       <field name="arch" type="xml">
-        <list>
+        <tree>
           <field name="name"/>
-          <field name="email"/>
-          <field name="phone"/>
-          <field name="multa_pendiente_count" string="Multas"/>
-        </list>
->>>>>>> af55d42a15e094a5b11bbaeba0f86826dd6b5ffe
+          <field name="pais"/>
+        </tree>
       </field>
     </record>
 
-<<<<<<< HEAD
-    <menuitem name="Biblioteca" id="biblioteca_menu"/>
-    <menuitem name="Libro menu" 
-    id="biblioteca.libro" 
-    parent="biblioteca.biblioteca_menu" 
-    action="biblioteca_libro_action_window"/>
+    <record model="ir.ui.view" id="biblioteca_editorial_form">
+      <field name="name">biblioteca.editorial.form</field>
+      <field name="model">biblioteca.editorial</field>
+      <field name="arch" type="xml">
+        <form>
+          <sheet>
+            <group>
+              <field name="name"/>
+              <field name="pais"/>
+              <field name="ciudad"/>
+            </group>
+          </sheet>
+        </form>
+      </field>
+    </record>
 
-   
-    <menuitem name="Autor menu" 
-    id="biblioteca.autor" 
-    parent="biblioteca.biblioteca_menu" 
-    action="biblioteca_autor_action_window"/>
+    <!-- Views: Usuario -->
+    <record model="ir.ui.view" id="biblioteca_usuario_tree">
+      <field name="name">biblioteca.usuario.tree</field>
+      <field name="model">biblioteca.usuario</field>
+      <field name="arch" type="xml">
+        <tree>
+          <field name="name"/>
+          <field name="email"/>
+          <field name="phone"/>
+          <field name="prestamo_count"/>
+        </tree>
+      </field>
+    </record>
 
-    <menuitem name="Editorial menu"
-    id="biblioteca.editorial"
-    parent="biblioteca.biblioteca_menu"
-    action="biblioteca_editorial_action_window"/>
-
-    <menuitem name="Usuario menu"
-    id="biblioteca.usuario"
-    parent="biblioteca.biblioteca_menu"
-    action="biblioteca_usuario_action_window"/>
-
-    <menuitem name="Personal menu"
-    id="biblioteca.personal"
-    parent="biblioteca.biblioteca_menu"
-    action="biblioteca_personal_action_window"/>
-
-    <menuitem name="Préstamo menu"
-    id="biblioteca.prestamo"
-    parent="biblioteca.biblioteca_menu"
-    action="biblioteca_prestamo_action_window"/>
-
-
-    <!-- menu categories -->
-<!--
-    <menuitem name="Menu 1" id="biblioteca.menu_1" parent="biblioteca.menu_root"/>
-    <menuitem name="Menu 2" id="biblioteca.menu_2" parent="biblioteca.menu_root"/>
--->
-    <!-- actions -->
-<!--
-    <menuitem name="List" id="biblioteca.menu_1_list" parent="biblioteca.menu_1"
-              action="biblioteca.action_window"/>
-    <menuitem name="Server to list" id="biblioteca" parent="biblioteca.menu_2"
-              action="biblioteca.action_server"/>
-
--->
-
-  </data>
-=======
     <record model="ir.ui.view" id="biblioteca_usuario_form">
+      <field name="name">biblioteca.usuario.form</field>
+      <field name="model">biblioteca.usuario</field>
+      <field name="arch" type="xml">
+        <form>
+          <sheet>
+            <group>
+              <field name="name"/>
+              <field name="cedula"/>
+              <field name="phone"/>
+              <field name="email"/>
+            </group>
+            <group>
+              <field name="prestamo_ids"/>
+              <field name="multa_ids"/>
+            </group>
+          </sheet>
+        </form>
+      </field>
+    </record>
+
+    <!-- Views: Prestamo -->
+    <record model="ir.ui.view" id="biblioteca_prestamo_tree">
+      <field name="name">biblioteca.prestamo.tree</field>
+      <field name="model">biblioteca.prestamo</field>
+      <field name="arch" type="xml">
+        <tree>
+          <field name="name"/>
+          <field name="libro_id"/>
+          <field name="usuario_id"/>
+          <field name="fecha_prestamo"/>
+          <field name="fecha_devolucion"/>
+          <field name="estado"/>
+        </tree>
+      </field>
+    </record>
+
+    <record model="ir.ui.view" id="biblioteca_prestamo_form_simple">
+      <field name="name">biblioteca.prestamo.form</field>
+      <field name="model">biblioteca.prestamo</field>
+      <field name="arch" type="xml">
+        <form string="Préstamo">
+          <header>
+            <button name="generar_prestamo" type="object" string="Prestar" class="btn-primary" attrs="{ 'invisible': [('estado','in', ['p','d','m'])] }"/>
+            <field name="estado" widget="statusbar"/>
+          </header>
+          <sheet>
+            <group>
+              <field name="name"/>
+              <field name="fecha_prestamo"/>
+              <field name="fecha_devolucion"/>
+              <field name="libro_id"/>
+              <field name="usuario_id"/>
+              <field name="multa_bol"/>
+              <field name="multa"/>
+              <field name="fecha_maxima"/>
+            </group>
+          </sheet>
+        </form>
+      </field>
+    </record>
+
+    <!-- Views: Multa -->
+    <record model="ir.ui.view" id="biblioteca_multa_tree">
+      <field name="name">biblioteca.multa.tree</field>
+      <field name="model">biblioteca.multa</field>
+      <field name="arch" type="xml">
+        <tree>
+          <field name="name"/>
+          <field name="usuario_id"/>
+          <field name="prestamo_id"/>
+          <field name="monto"/>
+          <field name="dias_retraso"/>
+        </tree>
+      </field>
+    </record>
+
+    <record model="ir.ui.view" id="biblioteca_multa_form">
+      <field name="name">biblioteca.multa.form</field>
+      <field name="model">biblioteca.multa</field>
+      <field name="arch" type="xml">
+        <form>
+          <header>
+            <button name="action_pagar" type="object" string="Registrar Pago" class="oe_highlight" attrs="{ 'invisible': [('state','in',['pagada','cancelada'])] }"/>
+            <field name="state" widget="statusbar"/>
+          </header>
+          <sheet>
+            <group>
+              <field name="name"/>
+              <field name="usuario_id"/>
+              <field name="prestamo_id"/>
+              <field name="monto"/>
+              <field name="dias_retraso"/>
+              <field name="fecha_vencimiento"/>
+            </group>
+          </sheet>
+        </form>
+      </field>
+    </record>
+
+    <!-- Menús y secuencias -->
+    <menuitem name="Biblioteca" id="biblioteca_menu" sequence="10"/>
+    <menuitem name="Catálogo" id="biblioteca_menu_catalogo" parent="biblioteca_menu" sequence="10"/>
+    <menuitem name="Gestión de Préstamos" id="biblioteca_menu_gestion" parent="biblioteca_menu" sequence="20"/>
+
+    <menuitem name="Libros" id="biblioteca.menu_libros" parent="biblioteca_menu_catalogo" action="biblioteca_libro_action_window" sequence="10"/>
+    <menuitem name="Autores" id="biblioteca.menu_autores" parent="biblioteca_menu_catalogo" action="biblioteca_autor_action_window" sequence="20"/>
+    <menuitem name="Editoriales" id="biblioteca.menu_editoriales" parent="biblioteca_menu_catalogo" action="biblioteca_editorial_action_window" sequence="30"/>
+    <menuitem name="Usuarios" id="biblioteca.menu_usuarios" parent="biblioteca_menu_gestion" action="biblioteca_usuario_action_window" sequence="10"/>
+    <menuitem name="Préstamos" id="biblioteca.menu_prestamos" parent="biblioteca_menu_gestion" action="biblioteca_prestamo_action_window" sequence="20"/>
+    <menuitem name="Multas" id="biblioteca.menu_multas" parent="biblioteca_menu_gestion" action="biblioteca_multa_action_window" sequence="30"/>
+
+    <record id="seq_biblioteca_prestamo" model="ir.sequence">
+        <field name="name">Referencia de Préstamo</field>
+        <field name="code">biblioteca.prestamo</field>
+        <field name="prefix">PR/%(year)s/</field>
+        <field name="padding">4</field>
+    </record>
+    
+    <record id="seq_biblioteca_multa" model="ir.sequence">
+        <field name="name">Referencia de Multa</field>
+        <field name="code">biblioteca.multa</field>
+        <field name="prefix">MU/%(year)s/</field>
+        <field name="padding">4</field>
+    </record>
+    
+  </data>
+</odoo>
       <field name="name">biblioteca.usuario.form</field>
       <field name="model">biblioteca.usuario</field>
       <field name="arch" type="xml">
@@ -428,5 +388,4 @@
     </record>
     
   </data>
->>>>>>> af55d42a15e094a5b11bbaeba0f86826dd6b5ffe
 </odoo>
