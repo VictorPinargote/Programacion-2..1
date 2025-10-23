@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id = "sequence_codigo_prestamos" model ="ir.sequence">
+            <field name = "name">Secuencia prestamos </field>
+            <field name = "code">biblioteca.prestamo</field>
+            <field name = "prefix">BLB-</field>
+            <field name = "suffix">-PRS</field>
+            <field name = "padding">4</field>
+        </record>
+    </data>
+</odoo>    
