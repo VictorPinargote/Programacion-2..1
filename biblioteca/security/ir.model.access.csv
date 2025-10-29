@@ -6,6 +6,4 @@ access_biblioteca_usuario_usuarios,biblioteca.usuario,model_biblioteca_usuario,b
 access_biblioteca_personal_usuarios,biblioteca.personal,model_biblioteca_personal,base.group_user,1,1,1,1
 access_biblioteca_prestamo_usuarios,biblioteca.prestamo,model_biblioteca_prestamo,base.group_user,1,1,1,1
 access_biblioteca_multa_usuarios,biblioteca.multa,model_biblioteca_multa,base.group_user,1,1,1,1
-access_biblioteca_usuario_usuarios,biblioteca.usuario,model_biblioteca_usuario,base.group_user,1,1,1,1
-access_biblioteca_prestamo_usuarios,biblioteca.prestamo,model_biblioteca_prestamo,base.group_user,1,1,1,1
-access_biblioteca_multa_usuarios,biblioteca.multa,model_biblioteca_multa,base.group_user,1,1,1,1
+access_biblioteca_configuracion_usuarios,biblioteca.configuracion,model_biblioteca_configuracion,base.group_user,1,1,1,1
