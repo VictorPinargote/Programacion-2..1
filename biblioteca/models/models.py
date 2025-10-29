@@ -35,6 +35,9 @@ class BibliotecaEditorial(models.Model):
     ciudad = fields.Char(string='Ciudad')
 
 
+# ============================================================================
+# CAMBIO 1: Clase BibliotecaLibro - AGREGADO CAMPO DE ESTADO
+# ============================================================================
 class BibliotecaLibro(models.Model):
     _name = 'biblioteca.libro'
     _description = 'Libro de la Biblioteca'
@@ -53,7 +56,29 @@ class BibliotecaLibro(models.Model):
     editorial = fields.Many2one('biblioteca.editorial', string='Editorial')
     ubicacion = fields.Char(string='Categoría')
 
+    # *** NUEVO CAMPO: Estado del Libro ***
+    estado_libro = fields.Selection([
+        ('disponible', 'Disponible'),
+        ('prestado', 'Prestado'),
+        ('no_disponible', 'No Disponible'),
+        ('en_reparacion', 'En Reparación')
+    ], string='Estado del Libro', default='disponible', required=True, 
+       help='Estado actual del libro en la biblioteca')
+
     prestamo_ids = fields.One2many('biblioteca.prestamo', 'libro_id', string='Historial de Préstamos')
+
+    # *** NUEVO CAMPO COMPUTADO: Contadores de préstamos activos ***
+    prestamos_activos = fields.Integer(string='Préstamos Activos', 
+                                       compute='_compute_prestamos_activos', 
+                                       store=True)
+
+    @api.depends('prestamo_ids', 'prestamo_ids.estado')
+    def _compute_prestamos_activos(self):
+        """Cuenta cuántos préstamos activos tiene el libro"""
+        for record in self:
+            record.prestamos_activos = len(record.prestamo_ids.filtered(
+                lambda p: p.estado in ['p', 'm']
+            ))
 
     def action_buscar_openlibrary(self):
         for record in self:
@@ -149,20 +174,16 @@ class BibliotecaUsuario(models.Model):
     def _check_cedula(self):
         for record in self:
             if record.cedula:
-                # Validar que solo sean números
                 if not record.cedula.isdigit():
                     raise ValidationError("La cédula debe contener solo números.")
                 
-                # Validar que tenga exactamente 10 dígitos
                 if len(record.cedula) != 10:
                     raise ValidationError("La cédula debe tener exactamente 10 dígitos.")
                 
-                # Validar provincia (primeros 2 dígitos)
                 provincia = int(record.cedula[0:2])
                 if provincia < 1 or provincia > 24:
                     raise ValidationError(f"Código de provincia inválido: {provincia}. Debe estar entre 01 y 24.")
                 
-                # Validar algoritmo de cédula ecuatoriana
                 if not self._validar_cedula_ec(record.cedula):
                     raise ValidationError(f"Cédula ecuatoriana inválida: {record.cedula}")
 
@@ -171,12 +192,10 @@ class BibliotecaUsuario(models.Model):
         if len(cedula) != 10 or not cedula.isdigit():
             return False
         
-        # Validar provincia (01 a 24)
         provincia = int(cedula[0:2])
         if provincia < 1 or provincia > 24:
             return False
         
-        # Algoritmo de validación del dígito verificador
         coef = [2, 1, 2, 1, 2, 1, 2, 1, 2]
         total = 0
         for i in range(9):
@@ -211,6 +230,15 @@ class BibliotecaConfiguracion(models.Model):
                                               help='Días después del vencimiento antes de enviar correo de multa')
     monto_multa_dia = fields.Float(string='Monto de Multa por Día', default=1.0, required=True,
                                    help='Monto en dólares que se cobra por cada día de retraso')
+    
+    # *** NUEVOS CAMPOS: Montos de multa por tipo ***
+    monto_multa_dano_leve = fields.Float(string='Multa por Daño Leve', default=5.0, required=True,
+                                         help='Monto por daños menores (páginas dobladas, cubiertas rayadas)')
+    monto_multa_dano_grave = fields.Float(string='Multa por Daño Grave', default=15.0, required=True,
+                                          help='Monto por daños graves (páginas arrancadas, líquidos)')
+    monto_multa_perdida = fields.Float(string='Multa por Pérdida', default=50.0, required=True,
+                                       help='Monto cuando el libro se pierde completamente')
+    
     email_biblioteca = fields.Char(string='Email de la Biblioteca', 
                                    default='biblioteca@ejemplo.com',
                                    help='Email desde el cual se enviarán las notificaciones')
@@ -225,11 +253,17 @@ class BibliotecaConfiguracion(models.Model):
                 'dias_prestamo': 7,
                 'dias_gracia_notificacion': 1,
                 'monto_multa_dia': 1.0,
+                'monto_multa_dano_leve': 5.0,
+                'monto_multa_dano_grave': 15.0,
+                'monto_multa_perdida': 50.0,
                 'email_biblioteca': 'biblioteca@ejemplo.com'
             })
         return config
 
 
+# ============================================================================
+# CAMBIO 2: Clase BibliotecaPrestamo - MODIFICADO PARA SOPORTAR ESTADOS DE LIBRO
+# ============================================================================
 class BibliotecaPrestamo(models.Model):
     _name = 'biblioteca.prestamo'
     _description = 'Registro de Préstamo de Libro'
@@ -248,6 +282,18 @@ class BibliotecaPrestamo(models.Model):
     dias_retraso = fields.Integer(string='Días de Retraso', compute='_compute_dias_retraso', store=True)
     notificacion_enviada = fields.Boolean(string='Notificación Enviada', default=False)
     fecha_notificacion = fields.Datetime(string='Fecha de Notificación', readonly=True)
+
+    # *** NUEVO CAMPO: Estado de devolución del libro ***
+    condicion_devolucion = fields.Selection([
+        ('bueno', 'Buen Estado'),
+        ('dano_leve', 'Daño Leve'),
+        ('dano_grave', 'Daño Grave'),
+        ('perdido', 'Perdido')
+    ], string='Condición al Devolver', help='Estado del libro al momento de la devolución')
+
+    # *** NUEVO CAMPO: Notas sobre la condición ***
+    notas_devolucion = fields.Text(string='Notas de Devolución', 
+                                   help='Detalles sobre el estado del libro devuelto')
 
     estado = fields.Selection([
         ('b', 'Borrador'),
@@ -290,26 +336,88 @@ class BibliotecaPrestamo(models.Model):
             vals['name'] = self.env['ir.sequence'].next_by_code('biblioteca.prestamo') or '/'
         return super().create(vals)
 
-    def generar_prestamo(self):
-        for rec in self:
-            rec.write({'estado': 'p'})
+    # *** MODIFICADO: Validación al crear préstamo ***
+    @api.constrains('libro_id')
+    def _check_libro_disponible(self):
+        """Verifica que el libro esté disponible para préstamo"""
+        for record in self:
+            if record.libro_id.estado_libro != 'disponible' and record.estado == 'b':
+                raise ValidationError(
+                    f"El libro '{record.libro_id.titulo}' no está disponible para préstamo.\n"
+                    f"Estado actual: {dict(record.libro_id._fields['estado_libro'].selection).get(record.libro_id.estado_libro)}"
+                )
 
-    def action_devolver(self):
-        """Registra la devolución y genera multa si hay retraso"""
+    def generar_prestamo(self):
+        """Genera el préstamo y cambia el estado del libro a 'prestado'"""
         for rec in self:
-            fecha_devolucion = fields.Datetime.now()
+            if rec.libro_id.estado_libro != 'disponible':
+                raise UserError(f"El libro '{rec.libro_id.titulo}' no está disponible para préstamo.")
             
+            # Cambiar estado del libro a prestado
+            rec.libro_id.write({'estado_libro': 'prestado'})
+            rec.write({'estado': 'p'})
+            _logger.info(f"Préstamo {rec.name} generado - Libro {rec.libro_id.titulo} marcado como PRESTADO")
+
+    # *** MODIFICADO COMPLETAMENTE: action_devolver con manejo de condiciones ***
+    def action_devolver(self):
+        """Registra la devolución y genera multa según condición del libro"""
+        for rec in self:
+            if not rec.condicion_devolucion:
+                raise UserError("Debe seleccionar la condición del libro al devolverlo.")
+            
+            fecha_devolucion = fields.Datetime.now()
+            config = self.env['biblioteca.configuracion'].get_config()
+            
+            # Calcular días de retraso
+            dias_retraso = 0
             if fecha_devolucion > rec.fecha_maxima:
                 diferencia = fecha_devolucion - rec.fecha_maxima
                 dias_retraso = diferencia.days
-                config = self.env['biblioteca.configuracion'].get_config()
-                monto_multa = dias_retraso * config.monto_multa_dia
+            
+            # Determinar monto de multa según condición
+            monto_multa = 0.0
+            tipo_multa = False
+            nuevo_estado_libro = 'disponible'
+            descripcion_multa = ''
+            
+            # MULTA POR RETRASO
+            if dias_retraso > 0:
+                monto_multa += dias_retraso * config.monto_multa_dia
+                tipo_multa = 'retraso'
+                descripcion_multa = f'Retraso de {dias_retraso} días'
+            
+            # MULTA POR CONDICIÓN DEL LIBRO
+            if rec.condicion_devolucion == 'dano_leve':
+                monto_multa += config.monto_multa_dano_leve
+                tipo_multa = 'dano_leve' if not tipo_multa else 'retraso_y_dano'
+                nuevo_estado_libro = 'en_reparacion'
+                descripcion_multa += ' + Daño leve al libro'
                 
+            elif rec.condicion_devolucion == 'dano_grave':
+                monto_multa += config.monto_multa_dano_grave
+                tipo_multa = 'dano_grave' if not tipo_multa else 'retraso_y_dano'
+                nuevo_estado_libro = 'no_disponible'
+                descripcion_multa += ' + Daño grave al libro'
+                
+            elif rec.condicion_devolucion == 'perdido':
+                monto_multa += config.monto_multa_perdida
+                tipo_multa = 'perdida'
+                nuevo_estado_libro = 'no_disponible'
+                descripcion_multa = 'Libro perdido'
+            
+            # Actualizar estado del libro
+            rec.libro_id.write({'estado_libro': nuevo_estado_libro})
+            _logger.info(f"Libro {rec.libro_id.titulo} actualizado a estado: {nuevo_estado_libro}")
+            
+            # Generar multa si hay monto
+            if monto_multa > 0:
                 self.env['biblioteca.multa'].create({
                     'usuario_id': rec.usuario_id.id,
                     'prestamo_id': rec.id,
                     'monto': monto_multa,
                     'dias_retraso': dias_retraso,
+                    'tipo_multa': tipo_multa,
+                    'descripcion': descripcion_multa.strip(),
                     'fecha_vencimiento': fecha_devolucion.date() + timedelta(days=30),
                     'state': 'pendiente'
                 })
@@ -320,6 +428,7 @@ class BibliotecaPrestamo(models.Model):
                     'multa_bol': True,
                     'multa': monto_multa
                 })
+                _logger.info(f"Multa generada: ${monto_multa} - Tipo: {tipo_multa}")
             else:
                 rec.write({
                     'fecha_devolucion': fecha_devolucion,
@@ -367,16 +476,18 @@ class BibliotecaPrestamo(models.Model):
         _logger.info("=== VERIFICACIÓN COMPLETADA ===")
 
     def _generar_multa_automatica(self, dias_retraso, config):
-        """Genera multa automáticamente"""
+        """Genera multa automáticamente por retraso"""
         multa_existente = self.env['biblioteca.multa'].search([
-            ('prestamo_id', '=', self.id)
+            ('prestamo_id', '=', self.id),
+            ('tipo_multa', '=', 'retraso')
         ], limit=1)
         
         if multa_existente:
             monto_actualizado = dias_retraso * config.monto_multa_dia
             multa_existente.write({
                 'dias_retraso': dias_retraso,
-                'monto': monto_actualizado
+                'monto': monto_actualizado,
+                'descripcion': f'Retraso de {dias_retraso} días (actualizado)'
             })
             _logger.info(f"Multa actualizada {multa_existente.name} - Monto: ${monto_actualizado}")
             return multa_existente
@@ -389,6 +500,8 @@ class BibliotecaPrestamo(models.Model):
                 'prestamo_id': self.id,
                 'monto': monto_multa,
                 'dias_retraso': dias_retraso,
+                'tipo_multa': 'retraso',
+                'descripcion': f'Retraso de {dias_retraso} días',
                 'fecha_vencimiento': fecha_vencimiento,
                 'state': 'pendiente'
             })
@@ -415,6 +528,9 @@ class BibliotecaPrestamo(models.Model):
             return False
 
 
+# ============================================================================
+# CAMBIO 3: Clase BibliotecaMulta - AGREGADO TIPO DE MULTA Y DESCRIPCIÓN
+# ============================================================================
 class BibliotecaMulta(models.Model):
     _name = 'biblioteca.multa'
     _description = 'Multa por Retraso de Libro'
@@ -429,6 +545,20 @@ class BibliotecaMulta(models.Model):
     dias_retraso = fields.Integer(string='Días de Retraso', required=True)
     fecha_vencimiento = fields.Date(string='Fecha de Vencimiento', required=True)
 
+    # *** NUEVO CAMPO: Tipo de multa ***
+    tipo_multa = fields.Selection([
+        ('retraso', 'Por Retraso'),
+        ('dano_leve', 'Por Daño Leve'),
+        ('dano_grave', 'Por Daño Grave'),
+        ('perdida', 'Por Pérdida'),
+        ('retraso_y_dano', 'Por Retraso y Daño')
+    ], string='Tipo de Multa', required=True, default='retraso',
+       help='Clasificación del motivo de la multa')
+
+    # *** NUEVO CAMPO: Descripción detallada ***
+    descripcion = fields.Text(string='Descripción', 
+                              help='Detalles sobre el motivo de la multa')
+
     state = fields.Selection([
         ('pendiente', 'Pendiente'),
         ('pagada', 'Pagada'),
@@ -436,9 +566,16 @@ class BibliotecaMulta(models.Model):
     ], string='Estado', default='pendiente', required=True)
 
     def action_pagar(self):
+        """Registra el pago de la multa y actualiza estados"""
         self.ensure_one()
         self.state = 'pagada'
         
+        # Si el libro está en reparación y la multa se pagó, puede volver a disponible
+        if self.prestamo_id.libro_id.estado_libro == 'en_reparacion':
+            self.prestamo_id.libro_id.write({'estado_libro': 'disponible'})
+            _logger.info(f"Libro {self.prestamo_id.libro_id.titulo} restaurado a DISPONIBLE tras pago de multa")
+        
+        # Si el préstamo está devuelto, cambiar su estado
         if self.prestamo_id.fecha_devolucion:
             self.prestamo_id.write({'estado': 'd'})
         

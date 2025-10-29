@@ -39,7 +39,9 @@
       <field name="view_mode">list,form</field>
     </record>
 
-    <!-- Views: Libro -->
+    <!-- ============================================================ -->
+    <!-- CAMBIO 1: Vista Lista de Libros - AGREGADO ESTADO DEL LIBRO -->
+    <!-- ============================================================ -->
     <record model="ir.ui.view" id="biblioteca_libro_list">
       <field name="name">biblioteca.libro.list</field>
       <field name="model">biblioteca.libro</field>
@@ -49,10 +51,21 @@
           <field name="autor"/>
           <field name="ejemplares"/>
           <field name="isbn"/>
+          <!-- NUEVO: Estado del libro con colores -->
+          <field name="estado_libro" 
+                 decoration-success="estado_libro == 'disponible'"
+                 decoration-warning="estado_libro == 'prestado'"
+                 decoration-danger="estado_libro == 'no_disponible'"
+                 decoration-info="estado_libro == 'en_reparacion'"/>
+          <!-- NUEVO: Contador de préstamos activos -->
+          <field name="prestamos_activos"/>
         </list>
       </field>
     </record>
 
+    <!-- ============================================================ -->
+    <!-- CAMBIO 2: Vista Formulario de Libros - AGREGADO ESTADO -->
+    <!-- ============================================================ -->
     <record model="ir.ui.view" id="biblioteca_libro_form">
       <field name="name">biblioteca.libro.form</field>
       <field name="model">biblioteca.libro</field>
@@ -60,17 +73,29 @@
         <form string="Libro">
           <header>
             <button name="action_buscar_openlibrary" type="object" string="Buscar en OpenLibrary" class="oe_highlight"/>
+            <!-- NUEVO: Badge de estado en el header -->
+            <field name="estado_libro" widget="badge" 
+                   decoration-success="estado_libro == 'disponible'"
+                   decoration-warning="estado_libro == 'prestado'"
+                   decoration-danger="estado_libro == 'no_disponible'"
+                   decoration-info="estado_libro == 'en_reparacion'"/>
           </header>
           <sheet>
             <group>
-              <field name="firstname"/>
-              <field name="titulo"/>
-              <field name="autor"/>
-              <field name="editorial"/>
-              <field name="genero"/>
-              <field name="isbn"/>
-              <field name="ejemplares"/>
-              <field name="costo"/>
+              <group>
+                <field name="firstname"/>
+                <field name="titulo"/>
+                <field name="autor"/>
+                <field name="editorial"/>
+                <field name="genero"/>
+              </group>
+              <group>
+                <field name="isbn"/>
+                <field name="ejemplares"/>
+                <field name="costo"/>
+                <!-- NUEVO: Mostrar préstamos activos -->
+                <field name="prestamos_activos" readonly="1"/>
+              </group>
             </group>
             <group>
               <field name="description"/>
@@ -87,6 +112,8 @@
                     <field name="fecha_devolucion"/>
                     <field name="usuario_id"/>
                     <field name="estado"/>
+                    <!-- NUEVO: Condición de devolución -->
+                    <field name="condicion_devolucion"/>
                   </list>
                 </field>
               </page>
@@ -96,7 +123,7 @@
       </field>
     </record>
 
-    <!-- Views: Autor -->
+    <!-- Views: Autor (sin cambios) -->
     <record model="ir.ui.view" id="biblioteca_autor_list">
       <field name="name">biblioteca.autor.list</field>
       <field name="model">biblioteca.autor</field>
@@ -125,7 +152,7 @@
       </field>
     </record>
 
-    <!-- Views: Editorial -->
+    <!-- Views: Editorial (sin cambios) -->
     <record model="ir.ui.view" id="biblioteca_editorial_list">
       <field name="name">biblioteca.editorial.list</field>
       <field name="model">biblioteca.editorial</field>
@@ -153,7 +180,7 @@
       </field>
     </record>
 
-    <!-- Views: Usuario -->
+    <!-- Views: Usuario (sin cambios) -->
     <record model="ir.ui.view" id="biblioteca_usuario_list">
       <field name="name">biblioteca.usuario.list</field>
       <field name="model">biblioteca.usuario</field>
@@ -205,6 +232,8 @@
                     <field name="prestamo_id"/>
                     <field name="monto"/>
                     <field name="dias_retraso"/>
+                    <!-- NUEVO: Tipo de multa -->
+                    <field name="tipo_multa"/>
                     <field name="state"/>
                   </list>
                 </field>
@@ -215,7 +244,9 @@
       </field>
     </record>
 
-    <!-- Views: Prestamo -->
+    <!-- ============================================================ -->
+    <!-- CAMBIO 3: Vista Lista de Préstamos - AGREGADA CONDICIÓN -->
+    <!-- ============================================================ -->
     <record model="ir.ui.view" id="biblioteca_prestamo_list">
       <field name="name">biblioteca.prestamo.list</field>
       <field name="model">biblioteca.prestamo</field>
@@ -227,10 +258,17 @@
           <field name="fecha_prestamo"/>
           <field name="fecha_maxima"/>
           <field name="estado"/>
+          <!-- NUEVO: Condición de devolución -->
+          <field name="condicion_devolucion" optional="show"/>
+          <!-- NUEVO: Días de retraso visible -->
+          <field name="dias_retraso" optional="show"/>
         </list>
       </field>
     </record>
 
+    <!-- ============================================================ -->
+    <!-- CAMBIO 4: Vista Formulario de Préstamos - AGREGADA SECCIÓN DE DEVOLUCIÓN -->
+    <!-- ============================================================ -->
     <record model="ir.ui.view" id="biblioteca_prestamo_form">
       <field name="name">biblioteca.prestamo.form</field>
       <field name="model">biblioteca.prestamo</field>
@@ -244,6 +282,7 @@
             <field name="estado" widget="statusbar"/>
           </header>
           <sheet>
+            <!-- Información básica del préstamo -->
             <group>
               <group>
                 <field name="name"/>
@@ -257,16 +296,41 @@
                 <field name="dias_retraso" invisible="dias_retraso == 0"/>
               </group>
             </group>
+
+            <!-- NUEVO: Sección de Devolución (visible solo al devolver) -->
+            <group string="Información de Devolución" invisible="estado == 'b'">
+              <group>
+                <!-- Campo OBLIGATORIO al devolver -->
+                <field name="condicion_devolucion" 
+                       required="estado in ['p','m']"
+                       readonly="estado == 'd'"/>
+              </group>
+              <group>
+                <field name="notas_devolucion" 
+                       placeholder="Ej: Página 15 tiene mancha de café, cubierta rayada..."
+                       readonly="estado == 'd'"/>
+              </group>
+            </group>
+
+            <!-- Sección de multa -->
             <group invisible="not multa_bol">
               <field name="multa_bol" invisible="1"/>
               <field name="multa"/>
             </group>
+
+            <!-- NUEVO: Alerta si hay días de retraso -->
+            <div class="alert alert-warning" role="alert" invisible="dias_retraso == 0 or estado == 'd'">
+              <strong>⚠️ Préstamo Vencido:</strong> Este préstamo tiene 
+              <field name="dias_retraso" readonly="1"/> días de retraso.
+            </div>
           </sheet>
         </form>
       </field>
     </record>
 
-    <!-- Views: Multa -->
+    <!-- ============================================================ -->
+    <!-- CAMBIO 5: Vista Lista de Multas - AGREGADO TIPO DE MULTA -->
+    <!-- ============================================================ -->
     <record model="ir.ui.view" id="biblioteca_multa_list">
       <field name="name">biblioteca.multa.list</field>
       <field name="model">biblioteca.multa</field>
@@ -275,6 +339,11 @@
           <field name="name"/>
           <field name="usuario_id"/>
           <field name="prestamo_id"/>
+          <!-- NUEVO: Tipo de multa con colores -->
+          <field name="tipo_multa" 
+                 decoration-info="tipo_multa == 'retraso'"
+                 decoration-warning="tipo_multa in ['dano_leve', 'retraso_y_dano']"
+                 decoration-danger="tipo_multa in ['dano_grave', 'perdida']"/>
           <field name="monto"/>
           <field name="dias_retraso"/>
           <field name="state"/>
@@ -282,6 +351,9 @@
       </field>
     </record>
 
+    <!-- ============================================================ -->
+    <!-- CAMBIO 6: Vista Formulario de Multas - AGREGADA DESCRIPCIÓN Y TIPO -->
+    <!-- ============================================================ -->
     <record model="ir.ui.view" id="biblioteca_multa_form">
       <field name="name">biblioteca.multa.form</field>
       <field name="model">biblioteca.multa</field>
@@ -298,6 +370,8 @@
                 <field name="name"/>
                 <field name="usuario_id"/>
                 <field name="prestamo_id"/>
+                <!-- NUEVO: Tipo de multa -->
+                <field name="tipo_multa" readonly="1"/>
               </group>
               <group>
                 <field name="monto"/>
@@ -305,12 +379,28 @@
                 <field name="fecha_vencimiento"/>
               </group>
             </group>
+
+            <!-- NUEVO: Descripción detallada de la multa -->
+            <group string="Detalles de la Multa">
+              <field name="descripcion" nolabel="1" readonly="1"/>
+            </group>
+
+            <!-- NUEVO: Información del libro multado -->
+            <group string="Información del Libro">
+              <field name="prestamo_id" invisible="1"/>
+              <label for="prestamo_id"/>
+              <div>
+                <strong>Libro:</strong> 
+                <field name="prestamo_id" readonly="1" nolabel="1" 
+                       widget="many2one" options="{'no_create': True}"/>
+              </div>
+            </group>
           </sheet>
         </form>
       </field>
     </record>
 
-    <!-- Menús -->
+    <!-- Menús (sin cambios) -->
     <menuitem name="Biblioteca" id="biblioteca_menu" sequence="10"/>
     <menuitem name="Catálogo" id="biblioteca_menu_catalogo" parent="biblioteca_menu" sequence="10"/>
     <menuitem name="Gestión de Préstamos" id="biblioteca_menu_gestion" parent="biblioteca_menu" sequence="20"/>
@@ -322,7 +412,7 @@
     <menuitem name="Préstamos" id="biblioteca.menu_prestamos" parent="biblioteca_menu_gestion" action="biblioteca_prestamo_action_window" sequence="20"/>
     <menuitem name="Multas" id="biblioteca.menu_multas" parent="biblioteca_menu_gestion" action="biblioteca_multa_action_window" sequence="30"/>
 
-    <!-- Secuencias -->
+    <!-- Secuencias (sin cambios) -->
     <record id="seq_biblioteca_prestamo" model="ir.sequence">
         <field name="name">Referencia de Préstamo</field>
         <field name="code">biblioteca.prestamo</field>
