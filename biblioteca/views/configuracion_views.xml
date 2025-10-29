@@ -6,55 +6,140 @@
         <field name="view_mode">form</field>
     </record>
 
-    <!-- ============================================================ -->
-    <!-- Formulario de Configuración - SIMPLIFICADO Y FUNCIONAL -->
-    <!-- ============================================================ -->
+    <!-- Formulario de Configuración MEJORADO -->
     <record model="ir.ui.view" id="biblioteca_configuracion_form">
         <field name="name">biblioteca.configuracion.form</field>
         <field name="model">biblioteca.configuracion</field>
         <field name="arch" type="xml">
             <form string="Configuración">
                 <sheet>
+                    <!-- Título Principal -->
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1" class="oe_inline"/>
+                        </h1>
+                    </div>
+
                     <!-- Configuración General -->
-                    <group string="⚙️ Configuración General">
+                    <group string="⚙️ Configuración General del Sistema">
                         <group>
-                            <field name="name" readonly="1"/>
-                            <field name="email_biblioteca"/>
+                            <field name="email_biblioteca" 
+                                   placeholder="biblioteca@ejemplo.com"
+                                   help="Correo desde el cual se enviarán las notificaciones"/>
+                        </group>
+                    </group>
+
+                    <separator string="📅 Configuración de Préstamos"/>
+                    
+                    <group>
+                        <group>
+                            <field name="dias_prestamo" 
+                                   help="Días que el usuario tiene para devolver un libro"/>
                         </group>
                         <group>
-                            <field name="dias_prestamo"/>
-                            <field name="dias_gracia_notificacion"/>
+                            <field name="dias_gracia_notificacion" 
+                                   help="Días de espera después del vencimiento antes de generar multa y enviar correo"/>
                         </group>
+                    </group>
+
+                    <!-- Información sobre el cron job -->
+                    <group>
+                        <div class="alert alert-info" role="alert">
+                            <strong>ℹ️ Sistema Automático de Multas:</strong>
+                            <p style="margin-top: 10px;">
+                                El sistema verifica automáticamente los préstamos vencidos cada hora 
+                                (configurable en Configuración → Acciones Programadas → "Verificar Préstamos Vencidos").
+                            </p>
+                            <p>
+                                Cuando un préstamo supera la fecha máxima de devolución + días de gracia:
+                            </p>
+                            <ul>
+                                <li>✅ Se crea automáticamente una multa en la base de datos</li>
+                                <li>📧 Se envía un correo al lector notificando la multa</li>
+                                <li>🔄 El préstamo cambia a estado "Con Multa"</li>
+                                <li>📊 La multa se actualiza si el retraso aumenta</li>
+                            </ul>
+                        </div>
                     </group>
 
                     <separator string="💰 Montos de Multas"/>
                     
                     <!-- Multas por Retraso -->
                     <group string="📅 Por Retraso en Devolución">
-                        <field name="monto_multa_dia" widget="monetary"/>
+                        <field name="monto_multa_dia" 
+                               widget="monetary"
+                               help="Monto que se cobra por cada día de retraso"/>
+                        <div class="alert alert-success" role="alert" colspan="2">
+                            <strong>Ejemplo:</strong> Si el monto es $1.00 y hay 5 días de retraso, 
+                            la multa será de $5.00 (se calcula automáticamente).
+                        </div>
                     </group>
 
                     <!-- Multas por Condición del Libro -->
-                    <group string="📚 Por Condición del Libro">
+                    <group string="📚 Por Condición del Libro al Devolver">
                         <group>
-                            <field name="monto_multa_dano_leve" widget="monetary"/>
-                            <field name="monto_multa_dano_grave" widget="monetary"/>
+                            <field name="monto_multa_dano_leve" 
+                                   widget="monetary"
+                                   help="Páginas dobladas, rayones menores, cubiertas rayadas"/>
+                            <field name="monto_multa_dano_grave" 
+                                   widget="monetary"
+                                   help="Páginas arrancadas, manchas de líquidos, daño estructural"/>
                         </group>
                         <group>
-                            <field name="monto_multa_perdida" widget="monetary"/>
+                            <field name="monto_multa_perdida" 
+                                   widget="monetary"
+                                   help="Cuando el libro se pierde completamente"/>
                         </group>
                     </group>
 
-                    <!-- Información -->
+                    <!-- Información Detallada -->
                     <group>
-                        <div class="alert alert-info">
-                            <strong>ℹ️ Información:</strong>
+                        <div class="alert alert-warning" role="alert">
+                            <strong>⚠️ Importante - Cómo Funciona el Sistema:</strong>
+                            <br/><br/>
+                            <strong>1. Multas por Retraso (Automáticas):</strong>
                             <ul>
-                                <li><strong>Retraso:</strong> Se cobra por cada día de atraso</li>
-                                <li><strong>Daño Leve:</strong> Páginas dobladas, rayones menores → Libro pasa a "En Reparación"</li>
-                                <li><strong>Daño Grave:</strong> Páginas arrancadas, líquidos → Libro pasa a "No Disponible"</li>
-                                <li><strong>Pérdida:</strong> Libro perdido → Libro pasa a "No Disponible"</li>
-                                <li><strong>Las multas por retraso y condición se suman automáticamente</strong></li>
+                                <li>Se generan automáticamente cuando el préstamo está vencido</li>
+                                <li>El sistema verifica cada hora los préstamos vencidos</li>
+                                <li>Se cobra $<field name="monto_multa_dia" readonly="1" nolabel="1"/> por día</li>
+                                <li>Se actualiza automáticamente si el retraso aumenta</li>
+                                <li>Se envía correo automático al lector</li>
+                            </ul>
+                            <br/>
+                            <strong>2. Multas por Condición del Libro (Manuales):</strong>
+                            <ul>
+                                <li><strong>Buen Estado:</strong> No genera multa adicional</li>
+                                <li><strong>Daño Leve ($<field name="monto_multa_dano_leve" readonly="1" nolabel="1"/>):</strong> 
+                                    Páginas dobladas, cubiertas rayadas → Libro pasa a "En Reparación"</li>
+                                <li><strong>Daño Grave ($<field name="monto_multa_dano_grave" readonly="1" nolabel="1"/>):</strong> 
+                                    Páginas arrancadas, líquidos → Libro pasa a "No Disponible" y se reduce 1 copia del inventario</li>
+                                <li><strong>Perdido ($<field name="monto_multa_perdida" readonly="1" nolabel="1"/>):</strong> 
+                                    Libro perdido → Libro pasa a "No Disponible" y se reduce 1 copia del inventario</li>
+                            </ul>
+                            <br/>
+                            <strong>3. Multas Combinadas:</strong>
+                            <p style="margin-top: 5px;">
+                                Si un libro se devuelve tarde Y con daños, ambas multas se suman automáticamente:
+                            </p>
+                            <p style="background-color: #fff3cd; padding: 10px; border-radius: 3px; margin-top: 5px;">
+                                <strong>Ejemplo:</strong> Libro devuelto 3 días tarde con daño leve:<br/>
+                                • Multa por retraso: 3 días × $<field name="monto_multa_dia" readonly="1" nolabel="1"/> = $<span class="oe_inline"><field name="monto_multa_dia" readonly="1" nolabel="1" invisible="1"/></span><br/>
+                                • Multa por daño leve: $<field name="monto_multa_dano_leve" readonly="1" nolabel="1"/><br/>
+                                • <strong>Total: Se suman ambas multas</strong>
+                            </p>
+                        </div>
+                    </group>
+
+                    <!-- Notas Finales -->
+                    <group>
+                        <div class="alert alert-info" role="alert">
+                            <strong>📌 Notas Importantes:</strong>
+                            <ul>
+                                <li>Las multas automáticas se crean en la sección "Multas" del menú</li>
+                                <li>Los correos se envían automáticamente usando el servidor de correo configurado</li>
+                                <li>Para verificar el estado del cron job, vaya a: 
+                                    <br/><em>Configuración → Técnico → Automatización → Acciones Programadas</em></li>
+                                <li>Puede ejecutar manualmente el cron desde la lista de acciones programadas</li>
                             </ul>
                         </div>
                     </group>
