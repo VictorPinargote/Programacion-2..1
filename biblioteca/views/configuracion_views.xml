@@ -1,153 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <data>
-
-    <!-- Action para Configuración -->
     <record model="ir.actions.act_window" id="biblioteca_configuracion_action_window">
-      <field name="name">Configuración de Multas</field>
-      <field name="res_model">biblioteca.configuracion</field>
-      <field name="view_mode">form</field>
-      <field name="target">inline</field>
+        <field name="name">Configuración de Multas</field>
+        <field name="res_model">biblioteca.configuracion</field>
+        <field name="view_mode">form</field>
     </record>
 
-    <!-- Vista de formulario para Configuración -->
     <record model="ir.ui.view" id="biblioteca_configuracion_form">
-      <field name="name">biblioteca.configuracion.form</field>
-      <field name="model">biblioteca.configuracion</field>
-      <field name="arch" type="xml">
-        <form string="Configuración del Sistema de Multas">
-          <sheet>
-            
-            <!-- Banner informativo -->
-            <div class="alert alert-info" role="alert" style="margin-bottom: 20px;">
-              <h4 class="alert-heading">
-                <i class="fa fa-info-circle"/> Configuración Global del Sistema
-              </h4>
-              <p style="margin-bottom: 0;">
-                Estos parámetros controlan el funcionamiento automático del sistema de préstamos y multas.
-                Los cambios se aplicarán inmediatamente a todos los préstamos nuevos.
-              </p>
-            </div>
-
-            <group>
-              <group string="⏰ Parámetros de Préstamos">
-                <field name="name" readonly="1"/>
-                
-                <label for="dias_prestamo" string="Días de Préstamo"/>
-                <div>
-                  <field name="dias_prestamo" class="oe_inline" style="width: 80px;"/>
-                  <span class="oe_inline" style="margin-left: 10px;">días</span>
-                </div>
-                <div class="alert alert-warning" role="alert" style="margin: 10px 0;">
-                  <small>
-                    <i class="fa fa-calendar"/> Tiempo máximo que un usuario puede tener un libro prestado.
-                    <br/>Ejemplo: Si configura 2 días, un préstamo del lunes vence el miércoles.
-                  </small>
-                </div>
-              </group>
-
-              <group string="💰 Parámetros de Multas">
-                <label for="monto_multa_dia" string="Tarifa Diaria"/>
-                <div>
-                  <field name="monto_multa_dia" class="oe_inline" style="width: 80px;"/>
-                  <span class="oe_inline" style="margin-left: 10px;">USD por día</span>
-                </div>
-                <div class="alert alert-success" role="alert" style="margin: 10px 0;">
-                  <small>
-                    <i class="fa fa-dollar"/> Monto que se cobra por cada día de retraso.
-                    <br/>Ejemplo: $1.00 x 5 días de retraso = $5.00 de multa
-                  </small>
-                </div>
-              </group>
-            </group>
-
-            <group>
-              <group string="📧 Notificaciones Automáticas">
-                <label for="dias_gracia_notificacion" string="Días de Gracia"/>
-                <div>
-                  <field name="dias_gracia_notificacion" class="oe_inline" style="width: 80px;"/>
-                  <span class="oe_inline" style="margin-left: 10px;">días después del vencimiento</span>
-                </div>
-                <div class="alert alert-primary" role="alert" style="margin: 10px 0;">
-                  <small>
-                    <i class="fa fa-envelope"/> Días de espera antes de enviar el correo de multa.
-                    <br/><strong>Ejemplo con 1 día de gracia:</strong>
-                    <br/>• Préstamo vence: Miércoles 23:59
-                    <br/>• Día de gracia: Jueves (no se envía correo)
-                    <br/>• Envío de correo: Viernes automáticamente
-                  </small>
-                </div>
-              </group>
-
-              <group string="📬 Información de Contacto">
-                <field name="email_biblioteca" placeholder="biblioteca@ejemplo.com"/>
-                <div class="alert alert-info" role="alert" style="margin: 10px 0;">
-                  <small>
-                    <i class="fa fa-at"/> Email desde el cual se enviarán las notificaciones.
-                    <br/>Asegúrese de configurar correctamente el servidor de correo en Odoo.
-                  </small>
-                </div>
-              </group>
-            </group>
-
-            <!-- Sección de ayuda -->
-            <group string="🤖 Funcionamiento del Sistema Automático" col="1">
-              <div class="alert alert-dark" role="alert">
-                <h5><i class="fa fa-cogs"/> ¿Cómo funciona el sistema automático?</h5>
-                <ol style="line-height: 2; margin-bottom: 0;">
-                  <li>
-                    <strong>Ejecución diaria:</strong> El sistema verifica préstamos vencidos todos los días a las 8:00 AM
-                  </li>
-                  <li>
-                    <strong>Identificación:</strong> Detecta préstamos que superaron la fecha máxima + días de gracia
-                  </li>
-                  <li>
-                    <strong>Generación de multas:</strong> Calcula automáticamente el monto según días de retraso
-                  </li>
-                  <li>
-                    <strong>Envío de correos:</strong> Notifica al lector con todos los detalles de la multa
-                  </li>
-                  <li>
-                    <strong>Actualización de estado:</strong> Cambia el préstamo a estado "Multa"
-                  </li>
-                </ol>
-              </div>
-            </group>
-
-            <!-- Ejemplo práctico -->
-            <group string="📊 Ejemplo Práctico" col="1">
-              <div class="alert alert-success" role="alert">
-                <h5><i class="fa fa-calculator"/> Cálculo de Multa</h5>
-                <p><strong>Configuración actual:</strong></p>
-                <ul style="line-height: 1.8;">
-                  <li>Días de préstamo: <field name="dias_prestamo" readonly="1" class="oe_inline"/> días</li>
-                  <li>Días de gracia: <field name="dias_gracia_notificacion" readonly="1" class="oe_inline"/> día(s)</li>
-                  <li>Tarifa diaria: $<field name="monto_multa_dia" readonly="1" class="oe_inline"/> USD</li>
-                </ul>
-                <p><strong>Escenario:</strong></p>
-                <ul style="line-height: 1.8; margin-bottom: 0;">
-                  <li>Préstamo realizado: Lunes 1 de enero, 10:00 AM</li>
-                  <li>Fecha máxima: Miércoles 3 de enero, 10:00 AM</li>
-                  <li>Día de gracia: Jueves 4 de enero (sin multa aún)</li>
-                  <li>Viernes 5 de enero: Sistema envía correo (1 día de retraso = $1.00)</li>
-                  <li>Lunes 8 de enero: Usuario devuelve (4 días de retraso = $4.00)</li>
-                </ul>
-              </div>
-            </group>
-
-          </sheet>
-        </form>
-      </field>
+        <field name="name">biblioteca.configuracion.form</field>
+        <field name="model">biblioteca.configuracion</field>
+        <field name="arch" type="xml">
+            <form string="Configuración">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name" readonly="1"/>
+                            <field name="dias_prestamo"/>
+                            <field name="monto_multa_dia"/>
+                        </group>
+                        <group>
+                            <field name="dias_gracia_notificacion"/>
+                            <field name="email_biblioteca"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
     </record>
 
-    <!-- Agregar en el menú principal -->
-    <menuitem 
-      name="Configuración" 
-      id="biblioteca.menu_configuracion" 
-      parent="biblioteca_menu" 
-      action="biblioteca_configuracion_action_window" 
-      sequence="100"
-      groups="base.group_system"/>
-
-  </data>
+    <menuitem name="Configuración" 
+              id="biblioteca.menu_configuracion" 
+              parent="biblioteca_menu" 
+              action="biblioteca_configuracion_action_window" 
+              sequence="100"/>
 </odoo>
