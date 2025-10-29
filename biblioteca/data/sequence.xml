@@ -1,10 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Secuencia para Préstamos -->
     <record id="sequence_codigo_prestamos" model="ir.sequence">
         <field name="name">Secuencia prestamos</field>
         <field name="code">biblioteca.prestamo</field>
         <field name="prefix">BLB-</field>
         <field name="suffix">-PRS</field>
         <field name="padding">4</field>
+    </record>
+
+    <!-- Secuencia para Multas (NECESARIA) -->
+    <record id="sequence_codigo_multas" model="ir.sequence">
+        <field name="name">Secuencia de Multas</field>
+        <field name="code">biblioteca.multa</field>
+        <field name="prefix">MUL-</field>
+        <field name="suffix">-RET</field>
+        <field name="padding">4</field>
+        <field name="number_increment">1</field>
+        <field name="number_next">1</field>
     </record>
 </odoo>

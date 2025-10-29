@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import requests
+import random
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError, UserError
 from datetime import datetime, timedelta
@@ -35,9 +36,6 @@ class BibliotecaEditorial(models.Model):
     ciudad = fields.Char(string='Ciudad')
 
 
-# ============================================================================
-# CAMBIO 1: Clase BibliotecaLibro - AGREGADO CAMPO DE ESTADO
-# ============================================================================
 class BibliotecaLibro(models.Model):
     _name = 'biblioteca.libro'
     _description = 'Libro de la Biblioteca'
@@ -46,7 +44,20 @@ class BibliotecaLibro(models.Model):
     firstname = fields.Char(string='Nombre de búsqueda')
     titulo = fields.Char(string='Título del Libro')
     autor = fields.Many2one('biblioteca.autor', string='Autor')
-    ejemplares = fields.Integer(string='Número de ejemplares', default=1)
+    
+    ejemplares = fields.Integer(string='Copias Totales', default=1, 
+                                help='Número total de copias físicas del libro en la biblioteca')
+    
+    copias_disponibles = fields.Integer(string='Copias Disponibles', 
+                                        compute='_compute_copias_disponibles', 
+                                        store=True,
+                                        help='Copias que pueden ser prestadas ahora')
+    
+    copias_prestadas = fields.Integer(string='Copias Prestadas',
+                                      compute='_compute_copias_disponibles',
+                                      store=True,
+                                      help='Copias actualmente en préstamo')
+    
     costo = fields.Float(string='Costo')
     description = fields.Text(string='Resumen del libro')
     fecha_publicacion = fields.Date(string='Fecha de Publicación')
@@ -56,21 +67,42 @@ class BibliotecaLibro(models.Model):
     editorial = fields.Many2one('biblioteca.editorial', string='Editorial')
     ubicacion = fields.Char(string='Categoría')
 
-    # *** NUEVO CAMPO: Estado del Libro ***
     estado_libro = fields.Selection([
         ('disponible', 'Disponible'),
-        ('prestado', 'Prestado'),
+        ('prestado', 'Totalmente Prestado'),
         ('no_disponible', 'No Disponible'),
-        ('en_reparacion', 'En Reparación')
-    ], string='Estado del Libro', default='disponible', required=True, 
-       help='Estado actual del libro en la biblioteca')
+    ], string='Estado del Libro', compute='_compute_estado_libro', store=True,
+       help='Estado basado en disponibilidad de copias')
 
     prestamo_ids = fields.One2many('biblioteca.prestamo', 'libro_id', string='Historial de Préstamos')
 
-    # *** NUEVO CAMPO COMPUTADO: Contadores de préstamos activos ***
     prestamos_activos = fields.Integer(string='Préstamos Activos', 
                                        compute='_compute_prestamos_activos', 
                                        store=True)
+
+    @api.depends('ejemplares', 'prestamo_ids', 'prestamo_ids.estado')
+    def _compute_copias_disponibles(self):
+        """Calcula cuántas copias están disponibles y cuántas prestadas"""
+        for record in self:
+            prestamos_activos = record.prestamo_ids.filtered(
+                lambda p: p.estado in ['p', 'm']
+            )
+            record.copias_prestadas = len(prestamos_activos)
+            record.copias_disponibles = record.ejemplares - record.copias_prestadas
+            
+            if record.copias_disponibles < 0:
+                record.copias_disponibles = 0
+
+    @api.depends('copias_disponibles', 'ejemplares')
+    def _compute_estado_libro(self):
+        """Determina el estado del libro según copias disponibles"""
+        for record in self:
+            if record.ejemplares == 0:
+                record.estado_libro = 'no_disponible'
+            elif record.copias_disponibles > 0:
+                record.estado_libro = 'disponible'
+            else:
+                record.estado_libro = 'prestado'
 
     @api.depends('prestamo_ids', 'prestamo_ids.estado')
     def _compute_prestamos_activos(self):
@@ -91,6 +123,7 @@ class BibliotecaLibro(models.Model):
                 data = response.json()
                 if not data.get('docs'):
                     raise UserError("No se encontró ningún libro con ese nombre en OpenLibrary.")
+                
                 libro = data['docs'][0]
                 work_key = libro.get('key')
                 titulo = libro.get('title', 'Sin título')
@@ -101,6 +134,9 @@ class BibliotecaLibro(models.Model):
                 descripcion = ''
                 generos = []
                 isbn = libro.get('isbn', [None])[0] if libro.get('isbn') else None
+                
+                num_ediciones = libro.get('edition_count', 0)
+                ejemplares_sugeridos = self._calcular_ejemplares_desde_ediciones(num_ediciones)
 
                 if work_key:
                     work_url = f"https://openlibrary.org{work_key}.json"
@@ -139,9 +175,29 @@ class BibliotecaLibro(models.Model):
                     'description': descripcion or 'No hay descripción disponible.',
                     'editorial': editorial.id,
                     'genero': ', '.join(generos) if generos else 'Desconocido',
+                    'ejemplares': ejemplares_sugeridos,
                 })
+                
+                _logger.info(f"Libro '{titulo}' importado con {ejemplares_sugeridos} copias (basado en {num_ediciones} ediciones)")
+                
             except Exception as e:
                 raise UserError(f"Error al conectar con OpenLibrary: {str(e)}")
+
+    def _calcular_ejemplares_desde_ediciones(self, num_ediciones):
+        """
+        Calcula cuántas copias debería tener la biblioteca según la popularidad del libro
+        Basado en el número de ediciones que tiene en OpenLibrary
+        """
+        if num_ediciones == 0:
+            return random.randint(1, 3)
+        elif num_ediciones < 5:
+            return random.randint(1, 2)
+        elif num_ediciones < 20:
+            return random.randint(2, 5)
+        elif num_ediciones < 50:
+            return random.randint(5, 10)
+        else:
+            return random.randint(10, 20)
 
 
 class BibliotecaUsuario(models.Model):
@@ -231,7 +287,6 @@ class BibliotecaConfiguracion(models.Model):
     monto_multa_dia = fields.Float(string='Monto de Multa por Día', default=1.0, required=True,
                                    help='Monto en dólares que se cobra por cada día de retraso')
     
-    # *** NUEVOS CAMPOS: Montos de multa por tipo ***
     monto_multa_dano_leve = fields.Float(string='Multa por Daño Leve', default=5.0, required=True,
                                          help='Monto por daños menores (páginas dobladas, cubiertas rayadas)')
     monto_multa_dano_grave = fields.Float(string='Multa por Daño Grave', default=15.0, required=True,
@@ -261,9 +316,6 @@ class BibliotecaConfiguracion(models.Model):
         return config
 
 
-# ============================================================================
-# CAMBIO 2: Clase BibliotecaPrestamo - MODIFICADO PARA SOPORTAR ESTADOS DE LIBRO
-# ============================================================================
 class BibliotecaPrestamo(models.Model):
     _name = 'biblioteca.prestamo'
     _description = 'Registro de Préstamo de Libro'
@@ -283,7 +335,6 @@ class BibliotecaPrestamo(models.Model):
     notificacion_enviada = fields.Boolean(string='Notificación Enviada', default=False)
     fecha_notificacion = fields.Datetime(string='Fecha de Notificación', readonly=True)
 
-    # *** NUEVO CAMPO: Estado de devolución del libro ***
     condicion_devolucion = fields.Selection([
         ('bueno', 'Buen Estado'),
         ('dano_leve', 'Daño Leve'),
@@ -291,7 +342,6 @@ class BibliotecaPrestamo(models.Model):
         ('perdido', 'Perdido')
     ], string='Condición al Devolver', help='Estado del libro al momento de la devolución')
 
-    # *** NUEVO CAMPO: Notas sobre la condición ***
     notas_devolucion = fields.Text(string='Notas de Devolución', 
                                    help='Detalles sobre el estado del libro devuelto')
 
@@ -336,29 +386,32 @@ class BibliotecaPrestamo(models.Model):
             vals['name'] = self.env['ir.sequence'].next_by_code('biblioteca.prestamo') or '/'
         return super().create(vals)
 
-    # *** MODIFICADO: Validación al crear préstamo ***
-    @api.constrains('libro_id')
-    def _check_libro_disponible(self):
-        """Verifica que el libro esté disponible para préstamo"""
+    @api.constrains('libro_id', 'estado')
+    def _check_copias_disponibles(self):
+        """Verifica que haya copias disponibles para préstamo"""
         for record in self:
-            if record.libro_id.estado_libro != 'disponible' and record.estado == 'b':
-                raise ValidationError(
-                    f"El libro '{record.libro_id.titulo}' no está disponible para préstamo.\n"
-                    f"Estado actual: {dict(record.libro_id._fields['estado_libro'].selection).get(record.libro_id.estado_libro)}"
-                )
+            if record.estado == 'b' and record.libro_id:
+                if record.libro_id.copias_disponibles <= 0:
+                    raise ValidationError(
+                        f"No hay copias disponibles del libro '{record.libro_id.titulo}'.\n"
+                        f"Copias totales: {record.libro_id.ejemplares}\n"
+                        f"Copias prestadas: {record.libro_id.copias_prestadas}\n"
+                        f"Copias disponibles: {record.libro_id.copias_disponibles}"
+                    )
 
     def generar_prestamo(self):
-        """Genera el préstamo y cambia el estado del libro a 'prestado'"""
+        """Genera el préstamo verificando copias disponibles"""
         for rec in self:
-            if rec.libro_id.estado_libro != 'disponible':
-                raise UserError(f"El libro '{rec.libro_id.titulo}' no está disponible para préstamo.")
+            if rec.libro_id.copias_disponibles <= 0:
+                raise UserError(
+                    f"No hay copias disponibles del libro '{rec.libro_id.titulo}'.\n"
+                    f"Todas las {rec.libro_id.ejemplares} copias están prestadas."
+                )
             
-            # Cambiar estado del libro a prestado
-            rec.libro_id.write({'estado_libro': 'prestado'})
             rec.write({'estado': 'p'})
-            _logger.info(f"Préstamo {rec.name} generado - Libro {rec.libro_id.titulo} marcado como PRESTADO")
+            _logger.info(f"Préstamo {rec.name} generado - Libro {rec.libro_id.titulo} "
+                        f"({rec.libro_id.copias_disponibles - 1} copias disponibles restantes)")
 
-    # *** MODIFICADO COMPLETAMENTE: action_devolver con manejo de condiciones ***
     def action_devolver(self):
         """Registra la devolución y genera multa según condición del libro"""
         for rec in self:
@@ -368,48 +421,43 @@ class BibliotecaPrestamo(models.Model):
             fecha_devolucion = fields.Datetime.now()
             config = self.env['biblioteca.configuracion'].get_config()
             
-            # Calcular días de retraso
             dias_retraso = 0
             if fecha_devolucion > rec.fecha_maxima:
                 diferencia = fecha_devolucion - rec.fecha_maxima
                 dias_retraso = diferencia.days
             
-            # Determinar monto de multa según condición
             monto_multa = 0.0
             tipo_multa = False
-            nuevo_estado_libro = 'disponible'
             descripcion_multa = ''
+            reduce_ejemplares = False
             
-            # MULTA POR RETRASO
             if dias_retraso > 0:
                 monto_multa += dias_retraso * config.monto_multa_dia
                 tipo_multa = 'retraso'
                 descripcion_multa = f'Retraso de {dias_retraso} días'
             
-            # MULTA POR CONDICIÓN DEL LIBRO
             if rec.condicion_devolucion == 'dano_leve':
                 monto_multa += config.monto_multa_dano_leve
                 tipo_multa = 'dano_leve' if not tipo_multa else 'retraso_y_dano'
-                nuevo_estado_libro = 'en_reparacion'
                 descripcion_multa += ' + Daño leve al libro'
                 
             elif rec.condicion_devolucion == 'dano_grave':
                 monto_multa += config.monto_multa_dano_grave
                 tipo_multa = 'dano_grave' if not tipo_multa else 'retraso_y_dano'
-                nuevo_estado_libro = 'no_disponible'
                 descripcion_multa += ' + Daño grave al libro'
+                reduce_ejemplares = True
                 
             elif rec.condicion_devolucion == 'perdido':
                 monto_multa += config.monto_multa_perdida
                 tipo_multa = 'perdida'
-                nuevo_estado_libro = 'no_disponible'
                 descripcion_multa = 'Libro perdido'
+                reduce_ejemplares = True
             
-            # Actualizar estado del libro
-            rec.libro_id.write({'estado_libro': nuevo_estado_libro})
-            _logger.info(f"Libro {rec.libro_id.titulo} actualizado a estado: {nuevo_estado_libro}")
+            if reduce_ejemplares:
+                nuevos_ejemplares = max(0, rec.libro_id.ejemplares - 1)
+                rec.libro_id.write({'ejemplares': nuevos_ejemplares})
+                _logger.warning(f"Libro '{rec.libro_id.titulo}' - Reducido a {nuevos_ejemplares} copias totales")
             
-            # Generar multa si hay monto
             if monto_multa > 0:
                 self.env['biblioteca.multa'].create({
                     'usuario_id': rec.usuario_id.id,
@@ -437,90 +485,128 @@ class BibliotecaPrestamo(models.Model):
                     'multa': 0.0
                 })
 
+    # ============================================================================
+    # FIX: CRON JOB - Genera multas automáticamente y envía correos
+    # ============================================================================
     @api.model
     def _cron_verificar_prestamos_vencidos(self):
-        """CRON JOB: Verifica préstamos vencidos y envía correos"""
+        """CRON JOB: Verifica préstamos vencidos, CREA MULTAS y envía correos"""
         _logger.info("=== INICIANDO VERIFICACIÓN DE PRÉSTAMOS VENCIDOS ===")
         
         config = self.env['biblioteca.configuracion'].get_config()
         fecha_actual = fields.Datetime.now()
         
+        # Buscar préstamos vencidos que aún no han sido notificados
         prestamos_vencidos = self.search([
-            ('estado', '=', 'p'),
-            ('fecha_maxima', '<', fecha_actual),
-            ('notificacion_enviada', '=', False),
+            ('estado', '=', 'p'),  # Solo préstamos activos (no devueltos)
+            ('fecha_maxima', '<', fecha_actual),  # Que ya pasaron la fecha máxima
+            ('notificacion_enviada', '=', False),  # Que NO han sido notificados
         ])
         
         _logger.info(f"Préstamos vencidos encontrados: {len(prestamos_vencidos)}")
         
         for prestamo in prestamos_vencidos:
-            dias_retraso = (fecha_actual - prestamo.fecha_maxima).days
-            
-            if dias_retraso >= config.dias_gracia_notificacion:
-                _logger.info(f"Procesando préstamo {prestamo.name} - Retraso: {dias_retraso} días")
+            try:
+                dias_retraso = (fecha_actual - prestamo.fecha_maxima).days
                 
-                multa = prestamo._generar_multa_automatica(dias_retraso, config)
-                
-                if prestamo.email_lector:
-                    prestamo._enviar_correo_multa(multa, config)
-                else:
-                    _logger.warning(f"Préstamo {prestamo.name} no tiene email")
-                
-                prestamo.write({
-                    'estado': 'm',
-                    'multa_bol': True,
-                    'notificacion_enviada': True,
-                    'fecha_notificacion': fecha_actual
-                })
+                # Verificar días de gracia antes de generar multa
+                if dias_retraso >= config.dias_gracia_notificacion:
+                    _logger.info(f"Procesando préstamo {prestamo.name} - Retraso: {dias_retraso} días")
+                    
+                    # *** FIX: Generar MULTA en la base de datos ***
+                    multa = prestamo._generar_multa_automatica(dias_retraso, config)
+                    
+                    if multa:
+                        _logger.info(f"✅ Multa creada: {multa.name} - Monto: ${multa.monto}")
+                        
+                        # Enviar correo si el usuario tiene email
+                        if prestamo.email_lector:
+                            correo_enviado = prestamo._enviar_correo_multa(multa, config)
+                            if correo_enviado:
+                                _logger.info(f"✅ Correo enviado a {prestamo.email_lector}")
+                            else:
+                                _logger.warning(f"⚠️ No se pudo enviar correo a {prestamo.email_lector}")
+                        else:
+                            _logger.warning(f"⚠️ Préstamo {prestamo.name} no tiene email configurado")
+                        
+                        # Actualizar estado del préstamo
+                        prestamo.write({
+                            'estado': 'm',  # Cambiar a "Con Multa"
+                            'multa_bol': True,
+                            'multa': multa.monto,
+                            'notificacion_enviada': True,
+                            'fecha_notificacion': fecha_actual
+                        })
+                        _logger.info(f"✅ Préstamo {prestamo.name} marcado como 'Con Multa'")
+                    else:
+                        _logger.error(f"❌ No se pudo crear multa para préstamo {prestamo.name}")
+                        
+            except Exception as e:
+                _logger.error(f"❌ Error procesando préstamo {prestamo.name}: {str(e)}")
+                # Continuar con el siguiente préstamo aunque este falle
+                continue
         
         _logger.info("=== VERIFICACIÓN COMPLETADA ===")
 
+    # ============================================================================
+    # FIX: Método para generar multa automáticamente
+    # ============================================================================
     def _generar_multa_automatica(self, dias_retraso, config):
-        """Genera multa automáticamente por retraso"""
+        """Genera o actualiza multa automáticamente por retraso"""
+        self.ensure_one()
+        
+        # Buscar si ya existe una multa de retraso para este préstamo
         multa_existente = self.env['biblioteca.multa'].search([
             ('prestamo_id', '=', self.id),
-            ('tipo_multa', '=', 'retraso')
+            ('tipo_multa', '=', 'retraso'),
+            ('state', '=', 'pendiente')  # Solo multas pendientes
         ], limit=1)
         
+        monto_actualizado = dias_retraso * config.monto_multa_dia
+        fecha_vencimiento = fields.Date.today() + timedelta(days=30)
+        
         if multa_existente:
-            monto_actualizado = dias_retraso * config.monto_multa_dia
+            # Actualizar multa existente con el nuevo monto
             multa_existente.write({
                 'dias_retraso': dias_retraso,
                 'monto': monto_actualizado,
-                'descripcion': f'Retraso de {dias_retraso} días (actualizado)'
+                'descripcion': f'Retraso de {dias_retraso} días (actualizado automáticamente)',
+                'fecha_vencimiento': fecha_vencimiento
             })
-            _logger.info(f"Multa actualizada {multa_existente.name} - Monto: ${monto_actualizado}")
+            _logger.info(f"Multa ACTUALIZADA: {multa_existente.name} - Nuevo monto: ${monto_actualizado}")
             return multa_existente
         else:
-            monto_multa = dias_retraso * config.monto_multa_dia
-            fecha_vencimiento = fields.Date.today() + timedelta(days=30)
-            
-            multa = self.env['biblioteca.multa'].create({
-                'usuario_id': self.usuario_id.id,
-                'prestamo_id': self.id,
-                'monto': monto_multa,
-                'dias_retraso': dias_retraso,
-                'tipo_multa': 'retraso',
-                'descripcion': f'Retraso de {dias_retraso} días',
-                'fecha_vencimiento': fecha_vencimiento,
-                'state': 'pendiente'
-            })
-            
-            self.write({'multa': monto_multa})
-            _logger.info(f"Nueva multa creada {multa.name} - Monto: ${monto_multa}")
-            return multa
+            # Crear nueva multa
+            try:
+                multa = self.env['biblioteca.multa'].create({
+                    'usuario_id': self.usuario_id.id,
+                    'prestamo_id': self.id,
+                    'monto': monto_actualizado,
+                    'dias_retraso': dias_retraso,
+                    'tipo_multa': 'retraso',
+                    'descripcion': f'Retraso de {dias_retraso} días (generado automáticamente)',
+                    'fecha_vencimiento': fecha_vencimiento,
+                    'state': 'pendiente'
+                })
+                
+                _logger.info(f"Multa CREADA: {multa.name} - Monto: ${monto_actualizado}")
+                return multa
+                
+            except Exception as e:
+                _logger.error(f"Error al crear multa para préstamo {self.name}: {str(e)}")
+                return False
 
     def _enviar_correo_multa(self, multa, config):
-        """Envía correo al lector"""
+        """Envía correo al lector notificando sobre la multa"""
         try:
             template = self.env.ref('biblioteca.email_template_notificacion_multa', raise_if_not_found=False)
             
             if not template:
-                _logger.error("Plantilla de correo no encontrada")
+                _logger.error("Plantilla de correo 'email_template_notificacion_multa' no encontrada")
                 return False
             
             template.send_mail(self.id, force_send=True)
-            _logger.info(f"Correo enviado a {self.email_lector} para préstamo {self.name}")
+            _logger.info(f"Correo enviado exitosamente a {self.email_lector} para préstamo {self.name}")
             return True
             
         except Exception as e:
@@ -528,9 +614,6 @@ class BibliotecaPrestamo(models.Model):
             return False
 
 
-# ============================================================================
-# CAMBIO 3: Clase BibliotecaMulta - AGREGADO TIPO DE MULTA Y DESCRIPCIÓN
-# ============================================================================
 class BibliotecaMulta(models.Model):
     _name = 'biblioteca.multa'
     _description = 'Multa por Retraso de Libro'
@@ -545,7 +628,6 @@ class BibliotecaMulta(models.Model):
     dias_retraso = fields.Integer(string='Días de Retraso', required=True)
     fecha_vencimiento = fields.Date(string='Fecha de Vencimiento', required=True)
 
-    # *** NUEVO CAMPO: Tipo de multa ***
     tipo_multa = fields.Selection([
         ('retraso', 'Por Retraso'),
         ('dano_leve', 'Por Daño Leve'),
@@ -555,7 +637,6 @@ class BibliotecaMulta(models.Model):
     ], string='Tipo de Multa', required=True, default='retraso',
        help='Clasificación del motivo de la multa')
 
-    # *** NUEVO CAMPO: Descripción detallada ***
     descripcion = fields.Text(string='Descripción', 
                               help='Detalles sobre el motivo de la multa')
 
@@ -566,16 +647,10 @@ class BibliotecaMulta(models.Model):
     ], string='Estado', default='pendiente', required=True)
 
     def action_pagar(self):
-        """Registra el pago de la multa y actualiza estados"""
+        """Registra el pago de la multa"""
         self.ensure_one()
         self.state = 'pagada'
         
-        # Si el libro está en reparación y la multa se pagó, puede volver a disponible
-        if self.prestamo_id.libro_id.estado_libro == 'en_reparacion':
-            self.prestamo_id.libro_id.write({'estado_libro': 'disponible'})
-            _logger.info(f"Libro {self.prestamo_id.libro_id.titulo} restaurado a DISPONIBLE tras pago de multa")
-        
-        # Si el préstamo está devuelto, cambiar su estado
         if self.prestamo_id.fecha_devolucion:
             self.prestamo_id.write({'estado': 'd'})
         
