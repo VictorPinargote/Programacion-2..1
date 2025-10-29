@@ -6,22 +6,57 @@
         <field name="view_mode">form</field>
     </record>
 
+    <!-- ============================================================ -->
+    <!-- Formulario de Configuración - SIMPLIFICADO Y FUNCIONAL -->
+    <!-- ============================================================ -->
     <record model="ir.ui.view" id="biblioteca_configuracion_form">
         <field name="name">biblioteca.configuracion.form</field>
         <field name="model">biblioteca.configuracion</field>
         <field name="arch" type="xml">
             <form string="Configuración">
                 <sheet>
-                    <group>
+                    <!-- Configuración General -->
+                    <group string="⚙️ Configuración General">
                         <group>
                             <field name="name" readonly="1"/>
-                            <field name="dias_prestamo"/>
-                            <field name="monto_multa_dia"/>
-                        </group>
-                        <group>
-                            <field name="dias_gracia_notificacion"/>
                             <field name="email_biblioteca"/>
                         </group>
+                        <group>
+                            <field name="dias_prestamo"/>
+                            <field name="dias_gracia_notificacion"/>
+                        </group>
+                    </group>
+
+                    <separator string="💰 Montos de Multas"/>
+                    
+                    <!-- Multas por Retraso -->
+                    <group string="📅 Por Retraso en Devolución">
+                        <field name="monto_multa_dia" widget="monetary"/>
+                    </group>
+
+                    <!-- Multas por Condición del Libro -->
+                    <group string="📚 Por Condición del Libro">
+                        <group>
+                            <field name="monto_multa_dano_leve" widget="monetary"/>
+                            <field name="monto_multa_dano_grave" widget="monetary"/>
+                        </group>
+                        <group>
+                            <field name="monto_multa_perdida" widget="monetary"/>
+                        </group>
+                    </group>
+
+                    <!-- Información -->
+                    <group>
+                        <div class="alert alert-info">
+                            <strong>ℹ️ Información:</strong>
+                            <ul>
+                                <li><strong>Retraso:</strong> Se cobra por cada día de atraso</li>
+                                <li><strong>Daño Leve:</strong> Páginas dobladas, rayones menores → Libro pasa a "En Reparación"</li>
+                                <li><strong>Daño Grave:</strong> Páginas arrancadas, líquidos → Libro pasa a "No Disponible"</li>
+                                <li><strong>Pérdida:</strong> Libro perdido → Libro pasa a "No Disponible"</li>
+                                <li><strong>Las multas por retraso y condición se suman automáticamente</strong></li>
+                            </ul>
+                        </div>
                     </group>
                 </sheet>
             </form>
