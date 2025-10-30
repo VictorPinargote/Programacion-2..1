@@ -297,7 +297,7 @@ class BibliotecaUsuario(models.Model):
 
 
 # ============================================================================
-# USUARIOS DEL SISTEMA CON GUARDADO AUTOMÁTICO EN JSON (SIN BOTONES)
+# USUARIOS DEL SISTEMA CON GUARDADO AUTOMÁTICO EN JSON Y LOGIN FUNCIONAL
 # ============================================================================
 class BibliotecaUsuarioSistema(models.Model):
     _name = 'biblioteca.usuario.sistema'
@@ -365,73 +365,138 @@ class BibliotecaUsuarioSistema(models.Model):
         return super().unlink()
 
     def action_crear_usuario_normal(self):
+        """✅ CORREGIDO: Ahora incluye base.group_user"""
         for record in self:
             existing_user = self.env['res.users'].sudo().search([('login', '=', record.login)], limit=1)
             if existing_user:
-                raise UserError(f"El usuario '{record.login}' ya existe.")
+                raise UserError(f"El usuario '{record.login}' ya existe en el sistema.")
             
             try:
-                grupo_usuario = self.env.ref('biblioteca.group_biblioteca_usuario')
+                # ✅ SOLUCIÓN: Obtener AMBOS grupos necesarios
+                grupo_base = self.env.ref('base.group_user')  # ← GRUPO BÁSICO DE ODOO (NECESARIO)
+                grupo_usuario = self.env.ref('biblioteca.group_biblioteca_usuario')  # ← TU GRUPO
+                
                 nuevo_usuario = self.env['res.users'].sudo().create({
                     'name': record.name,
                     'login': record.login,
                     'password': record.password,
                     'email': record.email or f"{record.login}@biblioteca.com",
-                    'groups_id': [(6, 0, [grupo_usuario.id])]
+                    # ✅ CLAVE: Asignar AMBOS grupos
+                    'groups_id': [(6, 0, [grupo_base.id, grupo_usuario.id])]
                 })
                 
                 record.write({'user_id': nuevo_usuario.id, 'es_administrador': False})
-                _logger.info(f"✅ Usuario normal creado: {record.login}")
+                _logger.info(f"✅ Usuario normal creado correctamente: {record.login}")
                 
                 return {
                     'type': 'ir.actions.client',
                     'tag': 'display_notification',
                     'params': {
-                        'title': '✅ Usuario Creado',
-                        'message': f'Usuario normal "{record.name}" creado exitosamente.',
+                        'title': '✅ Usuario Normal Creado',
+                        'message': f'Usuario "{record.name}" creado exitosamente.\n\n'
+                                   f'Login: {record.login}\n'
+                                   f'Ya puede iniciar sesión en el sistema.',
                         'type': 'success',
-                        'sticky': False,
+                        'sticky': True,
                     }
                 }
             except Exception as e:
+                _logger.error(f"❌ Error al crear usuario normal: {str(e)}")
                 raise UserError(f"Error al crear usuario: {str(e)}")
 
     def action_crear_administrador(self):
+        """✅ CORREGIDO: Ahora incluye base.group_user"""
         for record in self:
+            # Validar contraseña maestra
             if not record.contrasena_admin:
-                raise UserError("Debe ingresar la contraseña de administrador.")
+                raise UserError("❌ Debe ingresar la contraseña de administrador.")
             if record.contrasena_admin != CONTRASENA_MAESTRA_ADMIN:
                 raise UserError("❌ Contraseña de administrador incorrecta.")
             
             existing_user = self.env['res.users'].sudo().search([('login', '=', record.login)], limit=1)
             if existing_user:
-                raise UserError(f"El usuario '{record.login}' ya existe.")
+                raise UserError(f"El usuario '{record.login}' ya existe en el sistema.")
             
             try:
-                grupo_admin = self.env.ref('biblioteca.group_biblioteca_administrador')
+                # ✅ SOLUCIÓN: Obtener AMBOS grupos necesarios
+                grupo_base = self.env.ref('base.group_user')  # ← GRUPO BÁSICO DE ODOO (NECESARIO)
+                grupo_admin = self.env.ref('biblioteca.group_biblioteca_administrador')  # ← TU GRUPO
+                
                 nuevo_usuario = self.env['res.users'].sudo().create({
                     'name': record.name,
                     'login': record.login,
                     'password': record.password,
                     'email': record.email or f"{record.login}@biblioteca.com",
-                    'groups_id': [(6, 0, [grupo_admin.id])]
+                    # ✅ CLAVE: Asignar AMBOS grupos
+                    'groups_id': [(6, 0, [grupo_base.id, grupo_admin.id])]
                 })
                 
-                record.write({'user_id': nuevo_usuario.id, 'es_administrador': True, 'contrasena_admin': False})
-                _logger.info(f"✅ Administrador creado: {record.login}")
+                record.write({
+                    'user_id': nuevo_usuario.id, 
+                    'es_administrador': True, 
+                    'contrasena_admin': False  # Limpiar contraseña del formulario
+                })
+                _logger.info(f"✅ Administrador creado correctamente: {record.login}")
                 
                 return {
                     'type': 'ir.actions.client',
                     'tag': 'display_notification',
                     'params': {
-                        'title': '✅ Administrador Creado',
-                        'message': f'Administrador "{record.name}" creado exitosamente.',
+                        'title': '🔐 Administrador Creado',
+                        'message': f'Administrador "{record.name}" creado exitosamente.\n\n'
+                                   f'Login: {record.login}\n'
+                                   f'Tiene control total del sistema.',
                         'type': 'success',
-                        'sticky': False,
+                        'sticky': True,
                     }
                 }
             except Exception as e:
+                _logger.error(f"❌ Error al crear administrador: {str(e)}")
                 raise UserError(f"Error al crear administrador: {str(e)}")
+
+    def action_arreglar_usuario(self):
+        """
+        ✅ NUEVO MÉTODO: Arregla usuarios que ya fueron creados sin base.group_user
+        """
+        for record in self:
+            if not record.user_id:
+                raise UserError("Este registro no tiene un usuario asociado en Odoo.")
+            
+            try:
+                grupo_base = self.env.ref('base.group_user')
+                
+                # Verificar si ya tiene el grupo
+                if grupo_base not in record.user_id.groups_id:
+                    record.user_id.sudo().write({
+                        'groups_id': [(4, grupo_base.id)]  # (4, id) = agregar sin quitar los demás
+                    })
+                    _logger.info(f"✅ Usuario arreglado: {record.login}")
+                    
+                    return {
+                        'type': 'ir.actions.client',
+                        'tag': 'display_notification',
+                        'params': {
+                            'title': '✅ Usuario Arreglado',
+                            'message': f'El usuario "{record.name}" ahora puede iniciar sesión correctamente.',
+                            'type': 'success',
+                            'sticky': False,
+                        }
+                    }
+                else:
+                    return {
+                        'type': 'ir.actions.client',
+                        'tag': 'display_notification',
+                        'params': {
+                            'title': 'ℹ️ Usuario OK',
+                            'message': f'El usuario "{record.name}" ya tiene los permisos correctos.',
+                            'type': 'info',
+                            'sticky': False,
+                        }
+                    }
+                    
+            except Exception as e:
+                _logger.error(f"❌ Error al arreglar usuario: {str(e)}")
+                raise UserError(f"Error al arreglar usuario: {str(e)}")
 
 
 class BibliotecaPersonal(models.Model):
