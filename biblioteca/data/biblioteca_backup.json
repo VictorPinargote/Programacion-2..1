@@ -1,0 +1,36 @@
+{
+    "metadata": {
+        "creado": "2025-10-30 08:01:18",
+        "ultima_actualizacion": "2025-10-30 08:08:35",
+        "total_registros": 2
+    },
+    "contrasenas": {
+        "admin_maestra": "Joel1234"
+    },
+    "usuarios_sistema": [
+        {
+            "id": 2,
+            "nombre": "The papu",
+            "login": "Papu",
+            "password": "1234",
+            "email": "papuelchato@gmail.com",
+            "tipo": "Usuario Normal",
+            "fecha_creacion": "2025-10-30 08:01:23",
+            "ultima_modificacion": "2025-10-30 08:01:23",
+            "estado": "✅ ACTIVO"
+        },
+        {
+            "id": 3,
+            "nombre": "fernando",
+            "login": "fernando",
+            "password": "joel1234",
+            "email": "fernando27@gmail.com",
+            "tipo": "Usuario Normal",
+            "fecha_creacion": "2025-10-30 08:08:35",
+            "ultima_modificacion": "2025-10-30 08:08:35",
+            "estado": "✅ ACTIVO"
+        }
+    ],
+    "configuracion": {},
+    "historial_eliminados": []
+}

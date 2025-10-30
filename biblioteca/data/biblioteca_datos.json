@@ -1,0 +1,54 @@
+{
+  "metadata": {
+    "creado": "2025-01-30 10:00:00",
+    "ultima_actualizacion": "2025-01-30 15:30:00",
+    "total_registros": 5
+  },
+  "contrasenas": {
+    "admin_maestra": "Joel1234"
+  },
+  "usuarios_sistema": [
+    {
+      "id": 1,
+      "nombre": "Juan Pérez",
+      "login": "juanperez",
+      "password": "123456",
+      "email": "juan@biblioteca.com",
+      "tipo": "Usuario Normal",
+      "fecha_creacion": "2025-01-30 10:15:00",
+      "estado": "✅ ACTIVO"
+    },
+    {
+      "id": 2,
+      "nombre": "Admin Principal",
+      "login": "admin_biblioteca",
+      "password": "admin123",
+      "email": "admin@biblioteca.com",
+      "tipo": "🔐 ADMINISTRADOR",
+      "fecha_creacion": "2025-01-30 11:00:00",
+      "estado": "✅ ACTIVO"
+    }
+  ],
+  "configuracion": {
+    "dias_prestamo": 7,
+    "dias_gracia_notificacion": 1,
+    "monto_multa_dia": 1.0,
+    "monto_multa_dano_leve": 5.0,
+    "monto_multa_dano_grave": 15.0,
+    "monto_multa_perdida": 50.0,
+    "email_biblioteca": "biblioteca@ejemplo.com",
+    "ultima_modificacion": "2025-01-30 14:00:00"
+  },
+  "historial_eliminados": [
+    {
+      "id": 3,
+      "nombre": "Usuario Eliminado",
+      "login": "usuario_test",
+      "password": "test123",
+      "email": "test@biblioteca.com",
+      "tipo": "Usuario Normal",
+      "fecha_eliminacion": "2025-01-30 15:30:00",
+      "estado": "❌ ELIMINADO"
+    }
+  ]
+}
