@@ -1,8 +1,8 @@
 {
     "metadata": {
         "creado": "2025-10-30 08:01:18",
-        "ultima_actualizacion": "2025-10-30 08:08:35",
-        "total_registros": 2
+        "ultima_actualizacion": "2025-10-30 09:07:56",
+        "total_registros": 3
     },
     "contrasenas": {
         "admin_maestra": "Joel1234"
@@ -28,6 +28,17 @@
             "tipo": "Usuario Normal",
             "fecha_creacion": "2025-10-30 08:08:35",
             "ultima_modificacion": "2025-10-30 08:08:35",
+            "estado": "✅ ACTIVO"
+        },
+        {
+            "id": 5,
+            "nombre": "Juanisimo valdo",
+            "login": "Juanisimo",
+            "password": "joel1234",
+            "email": "juanisimovaldo@gamil.com",
+            "tipo": "Usuario Normal",
+            "fecha_creacion": "2025-10-30 09:07:56",
+            "ultima_modificacion": "2025-10-30 09:07:56",
             "estado": "✅ ACTIVO"
         }
     ],
