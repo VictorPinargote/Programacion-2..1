@@ -9,6 +9,11 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+# ============================================================================
+# CONTRASEÑA MAESTRA PARA CREAR ADMINISTRADORES
+# ============================================================================
+CONTRASENA_MAESTRA_ADMIN = "Joel1234"
+
 
 class BibliotecaAutor(models.Model):
     _name = 'biblioteca.autor'
@@ -264,6 +269,115 @@ class BibliotecaUsuario(models.Model):
         return digito_verificador == int(cedula[9])
 
 
+# ============================================================================
+# NUEVO: Clase para gestionar usuarios del sistema (Login de Odoo)
+# ============================================================================
+class BibliotecaUsuarioSistema(models.Model):
+    _name = 'biblioteca.usuario.sistema'
+    _description = 'Gestión de Usuarios del Sistema'
+
+    name = fields.Char(string='Nombre Completo', required=True)
+    login = fields.Char(string='Usuario (Login)', required=True)
+    password = fields.Char(string='Contraseña', required=True)
+    email = fields.Char(string='Email')
+    es_administrador = fields.Boolean(string='Es Administrador', default=False)
+    contrasena_admin = fields.Char(string='Contraseña de Administrador', 
+                                   help='Solo necesaria para crear administradores')
+    user_id = fields.Many2one('res.users', string='Usuario Creado', readonly=True)
+
+    def action_crear_usuario_normal(self):
+        """Crea un usuario normal del sistema con permisos de solo lectura"""
+        for record in self:
+            # Verificar si el login ya existe
+            existing_user = self.env['res.users'].sudo().search([('login', '=', record.login)], limit=1)
+            if existing_user:
+                raise UserError(f"El usuario '{record.login}' ya existe en el sistema.")
+            
+            # Crear usuario normal
+            try:
+                grupo_usuario = self.env.ref('biblioteca.group_biblioteca_usuario')
+                
+                nuevo_usuario = self.env['res.users'].sudo().create({
+                    'name': record.name,
+                    'login': record.login,
+                    'password': record.password,
+                    'email': record.email or f"{record.login}@biblioteca.com",
+                    'groups_id': [(6, 0, [grupo_usuario.id])]
+                })
+                
+                record.write({
+                    'user_id': nuevo_usuario.id,
+                    'es_administrador': False
+                })
+                
+                _logger.info(f"✅ Usuario normal creado: {record.login}")
+                
+                return {
+                    'type': 'ir.actions.client',
+                    'tag': 'display_notification',
+                    'params': {
+                        'title': '✅ Usuario Creado',
+                        'message': f'Usuario normal "{record.name}" creado exitosamente.',
+                        'type': 'success',
+                        'sticky': False,
+                    }
+                }
+                
+            except Exception as e:
+                _logger.error(f"Error al crear usuario normal: {str(e)}")
+                raise UserError(f"Error al crear usuario: {str(e)}")
+
+    def action_crear_administrador(self):
+        """Crea un administrador del sistema (requiere contraseña maestra)"""
+        for record in self:
+            # Validar contraseña maestra
+            if not record.contrasena_admin:
+                raise UserError("Debe ingresar la contraseña de administrador.")
+            
+            if record.contrasena_admin != CONTRASENA_MAESTRA_ADMIN:
+                raise UserError("❌ Contraseña de administrador incorrecta.")
+            
+            # Verificar si el login ya existe
+            existing_user = self.env['res.users'].sudo().search([('login', '=', record.login)], limit=1)
+            if existing_user:
+                raise UserError(f"El usuario '{record.login}' ya existe en el sistema.")
+            
+            # Crear administrador
+            try:
+                grupo_admin = self.env.ref('biblioteca.group_biblioteca_administrador')
+                
+                nuevo_usuario = self.env['res.users'].sudo().create({
+                    'name': record.name,
+                    'login': record.login,
+                    'password': record.password,
+                    'email': record.email or f"{record.login}@biblioteca.com",
+                    'groups_id': [(6, 0, [grupo_admin.id])]
+                })
+                
+                record.write({
+                    'user_id': nuevo_usuario.id,
+                    'es_administrador': True,
+                    'contrasena_admin': False  # Limpiar contraseña por seguridad
+                })
+                
+                _logger.info(f"✅ Administrador creado: {record.login}")
+                
+                return {
+                    'type': 'ir.actions.client',
+                    'tag': 'display_notification',
+                    'params': {
+                        'title': '✅ Administrador Creado',
+                        'message': f'Administrador "{record.name}" creado exitosamente.',
+                        'type': 'success',
+                        'sticky': False,
+                    }
+                }
+                
+            except Exception as e:
+                _logger.error(f"Error al crear administrador: {str(e)}")
+                raise UserError(f"Error al crear administrador: {str(e)}")
+
+
 class BibliotecaPersonal(models.Model):
     _name = 'biblioteca.personal'
     _description = 'Personal de la biblioteca'
@@ -485,9 +599,6 @@ class BibliotecaPrestamo(models.Model):
                     'multa': 0.0
                 })
 
-    # ============================================================================
-    # FIX: CRON JOB - Genera multas automáticamente y envía correos
-    # ============================================================================
     @api.model
     def _cron_verificar_prestamos_vencidos(self):
         """CRON JOB: Verifica préstamos vencidos, CREA MULTAS y envía correos"""
@@ -496,11 +607,10 @@ class BibliotecaPrestamo(models.Model):
         config = self.env['biblioteca.configuracion'].get_config()
         fecha_actual = fields.Datetime.now()
         
-        # Buscar préstamos vencidos que aún no han sido notificados
         prestamos_vencidos = self.search([
-            ('estado', '=', 'p'),  # Solo préstamos activos (no devueltos)
-            ('fecha_maxima', '<', fecha_actual),  # Que ya pasaron la fecha máxima
-            ('notificacion_enviada', '=', False),  # Que NO han sido notificados
+            ('estado', '=', 'p'),
+            ('fecha_maxima', '<', fecha_actual),
+            ('notificacion_enviada', '=', False),
         ])
         
         _logger.info(f"Préstamos vencidos encontrados: {len(prestamos_vencidos)}")
@@ -509,17 +619,14 @@ class BibliotecaPrestamo(models.Model):
             try:
                 dias_retraso = (fecha_actual - prestamo.fecha_maxima).days
                 
-                # Verificar días de gracia antes de generar multa
                 if dias_retraso >= config.dias_gracia_notificacion:
                     _logger.info(f"Procesando préstamo {prestamo.name} - Retraso: {dias_retraso} días")
                     
-                    # *** FIX: Generar MULTA en la base de datos ***
                     multa = prestamo._generar_multa_automatica(dias_retraso, config)
                     
                     if multa:
                         _logger.info(f"✅ Multa creada: {multa.name} - Monto: ${multa.monto}")
                         
-                        # Enviar correo si el usuario tiene email
                         if prestamo.email_lector:
                             correo_enviado = prestamo._enviar_correo_multa(multa, config)
                             if correo_enviado:
@@ -529,9 +636,8 @@ class BibliotecaPrestamo(models.Model):
                         else:
                             _logger.warning(f"⚠️ Préstamo {prestamo.name} no tiene email configurado")
                         
-                        # Actualizar estado del préstamo
                         prestamo.write({
-                            'estado': 'm',  # Cambiar a "Con Multa"
+                            'estado': 'm',
                             'multa_bol': True,
                             'multa': multa.monto,
                             'notificacion_enviada': True,
@@ -543,30 +649,24 @@ class BibliotecaPrestamo(models.Model):
                         
             except Exception as e:
                 _logger.error(f"❌ Error procesando préstamo {prestamo.name}: {str(e)}")
-                # Continuar con el siguiente préstamo aunque este falle
                 continue
         
         _logger.info("=== VERIFICACIÓN COMPLETADA ===")
 
-    # ============================================================================
-    # FIX: Método para generar multa automáticamente
-    # ============================================================================
     def _generar_multa_automatica(self, dias_retraso, config):
         """Genera o actualiza multa automáticamente por retraso"""
         self.ensure_one()
         
-        # Buscar si ya existe una multa de retraso para este préstamo
         multa_existente = self.env['biblioteca.multa'].search([
             ('prestamo_id', '=', self.id),
             ('tipo_multa', '=', 'retraso'),
-            ('state', '=', 'pendiente')  # Solo multas pendientes
+            ('state', '=', 'pendiente')
         ], limit=1)
         
         monto_actualizado = dias_retraso * config.monto_multa_dia
         fecha_vencimiento = fields.Date.today() + timedelta(days=30)
         
         if multa_existente:
-            # Actualizar multa existente con el nuevo monto
             multa_existente.write({
                 'dias_retraso': dias_retraso,
                 'monto': monto_actualizado,
@@ -576,7 +676,6 @@ class BibliotecaPrestamo(models.Model):
             _logger.info(f"Multa ACTUALIZADA: {multa_existente.name} - Nuevo monto: ${monto_actualizado}")
             return multa_existente
         else:
-            # Crear nueva multa
             try:
                 multa = self.env['biblioteca.multa'].create({
                     'usuario_id': self.usuario_id.id,

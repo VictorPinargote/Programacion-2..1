@@ -2,7 +2,7 @@
 <odoo>
   <data>
 
-    <!-- Actions (sin cambios) -->
+    <!-- Actions -->
     <record model="ir.actions.act_window" id="biblioteca_libro_action_window">
       <field name="name">Libros</field>
       <field name="res_model">biblioteca.libro</field>
@@ -39,6 +39,13 @@
       <field name="view_mode">list,form</field>
     </record>
 
+    <!-- NUEVO: Action para Gestión de Usuarios del Sistema -->
+    <record model="ir.actions.act_window" id="biblioteca_usuario_sistema_action_window">
+      <field name="name">Gestión de Usuarios del Sistema</field>
+      <field name="res_model">biblioteca.usuario.sistema</field>
+      <field name="view_mode">list,form</field>
+    </record>
+
     <!-- Vista Lista de Libros -->
     <record model="ir.ui.view" id="biblioteca_libro_list">
       <field name="name">biblioteca.libro.list</field>
@@ -67,7 +74,8 @@
       <field name="arch" type="xml">
         <form string="Libro">
           <header>
-            <button name="action_buscar_openlibrary" type="object" string="Buscar en OpenLibrary" class="oe_highlight"/>
+            <button name="action_buscar_openlibrary" type="object" string="Buscar en OpenLibrary" 
+                    class="oe_highlight" groups="biblioteca.group_biblioteca_administrador"/>
             <field name="estado_libro" widget="badge" 
                    decoration-success="estado_libro == 'disponible'"
                    decoration-warning="estado_libro == 'prestado'"
@@ -84,7 +92,8 @@
               </group>
               <group>
                 <field name="isbn"/>
-                <field name="ejemplares"/>
+                <field name="ejemplares" groups="biblioteca.group_biblioteca_administrador"/>
+                <field name="ejemplares" groups="biblioteca.group_biblioteca_usuario" readonly="1"/>
                 <field name="copias_disponibles" readonly="1"/>
                 <field name="copias_prestadas" readonly="1"/>
                 <field name="costo"/>
@@ -239,6 +248,125 @@
       </field>
     </record>
 
+    <!-- ============================================== -->
+    <!-- NUEVO: VISTAS PARA GESTIÓN DE USUARIOS DEL SISTEMA -->
+    <!-- ============================================== -->
+
+    <!-- Vista Lista de Usuarios del Sistema -->
+    <record model="ir.ui.view" id="biblioteca_usuario_sistema_list">
+      <field name="name">biblioteca.usuario.sistema.list</field>
+      <field name="model">biblioteca.usuario.sistema</field>
+      <field name="arch" type="xml">
+        <list string="Usuarios del Sistema" create="true">
+          <field name="name"/>
+          <field name="login"/>
+          <field name="email"/>
+          <field name="es_administrador" widget="boolean" readonly="1"/>
+          <field name="user_id" readonly="1"/>
+        </list>
+      </field>
+    </record>
+
+    <!-- Vista Formulario de Usuario del Sistema -->
+    <record model="ir.ui.view" id="biblioteca_usuario_sistema_form">
+      <field name="name">biblioteca.usuario.sistema.form</field>
+      <field name="model">biblioteca.usuario.sistema</field>
+      <field name="arch" type="xml">
+        <form string="Crear Usuario del Sistema">
+          <header>
+            <!-- Botón para crear Usuario Normal -->
+            <button name="action_crear_usuario_normal" 
+                    type="object" 
+                    string="👤 Crear Usuario Normal" 
+                    class="oe_highlight"
+                    invisible="user_id"
+                    help="Crea un usuario con permisos de solo lectura"/>
+            
+            <!-- Botón para crear Administrador (requiere contraseña) -->
+            <button name="action_crear_administrador" 
+                    type="object" 
+                    string="🔐 Crear Administrador" 
+                    class="btn-warning"
+                    invisible="user_id"
+                    help="Requiere contraseña maestra. Crea un administrador con control total"/>
+            
+            <!-- Badge de estado -->
+            <field name="es_administrador" widget="badge" 
+                   decoration-danger="es_administrador == True"
+                   decoration-success="es_administrador == False"
+                   invisible="not user_id"/>
+          </header>
+          
+          <sheet>
+            <!-- Alerta si ya fue creado -->
+            <div class="alert alert-success" role="alert" invisible="not user_id">
+              <strong>✅ Usuario Creado Exitosamente</strong>
+              <p style="margin-top: 5px;">
+                El usuario ha sido creado en el sistema. 
+                Puede iniciar sesión con el login: <strong><field name="login" readonly="1" nolabel="1"/></strong>
+              </p>
+            </div>
+
+            <!-- Información del Usuario -->
+            <group string="📋 Información del Usuario">
+              <group>
+                <field name="name" placeholder="Ej: Juan Pérez" required="1" readonly="user_id"/>
+                <field name="login" placeholder="Ej: juanperez" required="1" readonly="user_id"/>
+              </group>
+              <group>
+                <field name="password" password="True" placeholder="Contraseña del usuario" required="1" readonly="user_id"/>
+                <field name="email" placeholder="correo@ejemplo.com" readonly="user_id"/>
+              </group>
+            </group>
+
+            <!-- Sección de Contraseña de Administrador (solo visible al crear admin) -->
+            <group string="🔐 Contraseña de Administrador" invisible="user_id">
+              <div class="alert alert-warning" role="alert">
+                <p><strong>⚠️ Importante:</strong></p>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                  <li>Para crear un <strong>Usuario Normal</strong>: Haga clic en "Crear Usuario Normal" (no requiere contraseña maestra)</li>
+                  <li>Para crear un <strong>Administrador</strong>: Ingrese la contraseña maestra abajo y haga clic en "Crear Administrador"</li>
+                </ul>
+              </div>
+              <field name="contrasena_admin" 
+                     password="True" 
+                     placeholder="Ingrese la contraseña maestra para crear administrador"
+                     help="Esta contraseña está configurada en el código del sistema"/>
+            </group>
+
+            <!-- Información adicional si ya está creado -->
+            <group string="📊 Estado del Usuario" invisible="not user_id">
+              <field name="user_id" readonly="1"/>
+              <field name="es_administrador" readonly="1"/>
+            </group>
+
+            <!-- Notas informativas -->
+            <group invisible="user_id">
+              <div class="alert alert-info" role="alert">
+                <strong>ℹ️ Tipos de Usuario:</strong>
+                <br/><br/>
+                <strong>👤 Usuario Normal:</strong>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                  <li>Solo puede VER información (libros, autores, editoriales)</li>
+                  <li>Puede ver sus propios préstamos y multas</li>
+                  <li>NO puede crear préstamos ni modificar configuración</li>
+                </ul>
+                <br/>
+                <strong>🔐 Administrador:</strong>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                  <li>Control TOTAL del sistema</li>
+                  <li>Puede crear y gestionar préstamos</li>
+                  <li>Puede ver TODOS los préstamos y multas</li>
+                  <li>Puede modificar configuración del sistema</li>
+                  <li>Requiere contraseña maestra para ser creado</li>
+                </ul>
+              </div>
+            </group>
+          </sheet>
+        </form>
+      </field>
+    </record>
+
     <!-- Vista Lista de Préstamos -->
     <record model="ir.ui.view" id="biblioteca_prestamo_list">
       <field name="name">biblioteca.prestamo.list</field>
@@ -269,9 +397,11 @@
         <form string="Préstamo">
           <header>
             <button name="generar_prestamo" type="object" string="Prestar Libro" 
-                    class="btn-primary" invisible="estado in ['p','d','m']"/>
+                    class="btn-primary" invisible="estado in ['p','d','m']"
+                    groups="biblioteca.group_biblioteca_administrador"/>
             <button name="action_devolver" type="object" string="Devolver Libro" 
-                    class="btn-success" invisible="estado in ['d','b']"/>
+                    class="btn-success" invisible="estado in ['d','b']"
+                    groups="biblioteca.group_biblioteca_administrador"/>
             <field name="estado" widget="statusbar"/>
           </header>
           <sheet>
@@ -279,11 +409,12 @@
             <div class="alert alert-danger" role="alert" invisible="dias_retraso == 0 or estado == 'd'">
               <strong>⚠️ PRÉSTAMO VENCIDO:</strong> Este préstamo tiene 
               <strong><field name="dias_retraso" readonly="1"/></strong> días de retraso.
-              % if not notificacion_enviada:
+              <span invisible="notificacion_enviada">
               <br/><em>Nota: Se generará una multa automáticamente cuando el sistema ejecute la verificación.</em>
-              % else:
-              <br/><em>Multa generada y notificación enviada el ${fecha_notificacion.strftime('%d/%m/%Y %H:%M') if fecha_notificacion else 'N/A'}</em>
-              % endif
+              </span>
+              <span invisible="not notificacion_enviada">
+              <br/><em>Multa generada y notificación enviada.</em>
+              </span>
             </div>
 
             <!-- Información básica del préstamo -->
@@ -308,12 +439,18 @@
               <group>
                 <field name="condicion_devolucion" 
                        required="estado in ['p','m']"
-                       readonly="estado == 'd'"/>
+                       groups="biblioteca.group_biblioteca_administrador"/>
+                <field name="condicion_devolucion" 
+                       groups="biblioteca.group_biblioteca_usuario" 
+                       readonly="1"/>
               </group>
               <group>
                 <field name="notas_devolucion" 
                        placeholder="Ej: Página 15 tiene mancha de café, cubierta rayada..."
-                       readonly="estado == 'd'"/>
+                       groups="biblioteca.group_biblioteca_administrador"/>
+                <field name="notas_devolucion" 
+                       groups="biblioteca.group_biblioteca_usuario" 
+                       readonly="1"/>
               </group>
             </group>
 
@@ -327,10 +464,6 @@
       </field>
     </record>
 
-    <!-- ============================================== -->
-    <!-- MEJORAS EN VISTAS DE MULTAS -->
-    <!-- ============================================== -->
-    
     <!-- Vista de Búsqueda de Multas con Filtros -->
     <record model="ir.ui.view" id="biblioteca_multa_search">
       <field name="name">biblioteca.multa.search</field>
@@ -357,7 +490,7 @@
       </field>
     </record>
 
-    <!-- Vista Lista de Multas MEJORADA -->
+    <!-- Vista Lista de Multas -->
     <record model="ir.ui.view" id="biblioteca_multa_list">
       <field name="name">biblioteca.multa.list</field>
       <field name="model">biblioteca.multa</field>
@@ -381,7 +514,7 @@
       </field>
     </record>
 
-    <!-- Vista Formulario de Multas MEJORADA -->
+    <!-- Vista Formulario de Multas -->
     <record model="ir.ui.view" id="biblioteca_multa_form">
       <field name="name">biblioteca.multa.form</field>
       <field name="model">biblioteca.multa</field>
@@ -389,7 +522,8 @@
         <form>
           <header>
             <button name="action_pagar" type="object" string="Registrar Pago" 
-                    class="btn-success" invisible="state in ['pagada','cancelada']"/>
+                    class="btn-success" invisible="state in ['pagada','cancelada']"
+                    groups="biblioteca.group_biblioteca_administrador"/>
             <field name="state" widget="statusbar" statusbar_visible="pendiente,pagada"/>
           </header>
           <sheet>
@@ -421,55 +555,66 @@
             </group>
 
             <!-- Descripción Detallada de la Multa -->
-            <group string="📝 Detalles de la Multa">          
+            <group string="📝 Detalles de la Multa">
               <field name="descripcion" nolabel="1" readonly="1" 
-                                widget="text" 
-                                placeholder="Descripción detallada de la multa generada automáticamente por el sistema"/>
+                     widget="text" 
+                     placeholder="Descripción detallada de la multa generada automáticamente por el sistema"/>
             </group>
 
             <!-- Información del Préstamo Asociado -->
-        <group string="📚 Información del Préstamo">
-          <group>
-            <label for="prestamo_id" string="Libro Prestado"/>
-            <div>
-              <field name="prestamo_id" invisible="1"/>
-              <strong>
-                <field name="prestamo_id" readonly="1" 
-                       widget="many2one" 
-                       options="{'no_create': True, 'no_open': True}"/>
-              </strong>
-            </div>
-          </group>
-        </group>
+            <group string="📚 Información del Préstamo">
+              <group>
+                <label for="prestamo_id" string="Libro Prestado"/>
+                <div>
+                  <field name="prestamo_id" invisible="1"/>
+                  <strong>
+                    <field name="prestamo_id" readonly="1" 
+                           widget="many2one" 
+                           options="{'no_create': True, 'no_open': True}"/>
+                  </strong>
+                </div>
+              </group>
+            </group>
 
-        <!-- Información Adicional para Multas Pendientes -->
-        <group string="💡 Información de Pago" invisible="state != 'pendiente'">
-          <div class="alert alert-info" role="alert">
-            <p><strong>Para pagar esta multa:</strong></p>
-            <ul>
-              <li>Acérquese a la biblioteca con su identificación</li>
-              <li>Presente el código de la multa: <strong><field name="name" readonly="1" nolabel="1"/></strong></li>
-              <li>Realice el pago en caja</li>
-              <li>El personal registrará su pago en el sistema</li>
-            </ul>
-          </div>
-        </group>
-      </sheet>
-    </form>
-  </field>
-</record>
+            <!-- Información Adicional para Multas Pendientes -->
+            <group string="💡 Información de Pago" invisible="state != 'pendiente'">
+              <div class="alert alert-info" role="alert">
+                <p><strong>Para pagar esta multa:</strong></p>
+                <ul>
+                  <li>Acérquese a la biblioteca con su identificación</li>
+                  <li>Presente el código de la multa: <strong><field name="name" readonly="1" nolabel="1"/></strong></li>
+                  <li>Realice el pago en caja</li>
+                  <li>El personal registrará su pago en el sistema</li>
+                </ul>
+              </div>
+            </group>
+          </sheet>
+        </form>
+      </field>
+    </record>
 
-<!-- Menús -->
-<menuitem name="Biblioteca" id="biblioteca_menu" sequence="10"/>
-<menuitem name="Catálogo" id="biblioteca_menu_catalogo" parent="biblioteca_menu" sequence="10"/>
-<menuitem name="Gestión de Préstamos" id="biblioteca_menu_gestion" parent="biblioteca_menu" sequence="20"/>
+    <!-- Menús -->
+    <menuitem name="Biblioteca" id="biblioteca_menu" sequence="10"/>
+    <menuitem name="Catálogo" id="biblioteca_menu_catalogo" parent="biblioteca_menu" sequence="10"/>
+    <menuitem name="Gestión de Préstamos" id="biblioteca_menu_gestion" parent="biblioteca_menu" sequence="20"/>
+    
+    <!-- NUEVO: Menú de Administración (solo visible para administradores) -->
+    <menuitem name="Administración" id="biblioteca_menu_administracion" parent="biblioteca_menu" 
+              sequence="30" groups="biblioteca.group_biblioteca_administrador"/>
 
-<menuitem name="Libros" id="biblioteca.menu_libros" parent="biblioteca_menu_catalogo" action="biblioteca_libro_action_window" sequence="10"/>
-<menuitem name="Autores" id="biblioteca.menu_autores" parent="biblioteca_menu_catalogo" action="biblioteca_autor_action_window" sequence="20"/>
-<menuitem name="Editoriales" id="biblioteca.menu_editoriales" parent="biblioteca_menu_catalogo" action="biblioteca_editorial_action_window" sequence="30"/>
-<menuitem name="Usuarios" id="biblioteca.menu_usuarios" parent="biblioteca_menu_gestion" action="biblioteca_usuario_action_window" sequence="10"/>
-<menuitem name="Préstamos" id="biblioteca.menu_prestamos" parent="biblioteca_menu_gestion" action="biblioteca_prestamo_action_window" sequence="20"/>
-<menuitem name="Multas" id="biblioteca.menu_multas" parent="biblioteca_menu_gestion" action="biblioteca_multa_action_window" sequence="30"/>
+    <menuitem name="Libros" id="biblioteca.menu_libros" parent="biblioteca_menu_catalogo" action="biblioteca_libro_action_window" sequence="10"/>
+    <menuitem name="Autores" id="biblioteca.menu_autores" parent="biblioteca_menu_catalogo" action="biblioteca_autor_action_window" sequence="20"/>
+    <menuitem name="Editoriales" id="biblioteca.menu_editoriales" parent="biblioteca_menu_catalogo" action="biblioteca_editorial_action_window" sequence="30"/>
+    <menuitem name="Usuarios" id="biblioteca.menu_usuarios" parent="biblioteca_menu_gestion" action="biblioteca_usuario_action_window" sequence="10"/>
+    <menuitem name="Préstamos" id="biblioteca.menu_prestamos" parent="biblioteca_menu_gestion" action="biblioteca_prestamo_action_window" sequence="20"/>
+    <menuitem name="Multas" id="biblioteca.menu_multas" parent="biblioteca_menu_gestion" action="biblioteca_multa_action_window" sequence="30"/>
+    
+    <!-- NUEVO: Menú para gestionar usuarios del sistema -->
+    <menuitem name="Usuarios del Sistema" id="biblioteca.menu_usuarios_sistema" 
+              parent="biblioteca_menu_administracion" 
+              action="biblioteca_usuario_sistema_action_window" 
+              sequence="10"
+              groups="biblioteca.group_biblioteca_administrador"/>
 
   </data>
 </odoo>

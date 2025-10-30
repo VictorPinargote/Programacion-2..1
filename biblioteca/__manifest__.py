@@ -22,6 +22,8 @@ Características principales:
     * Cron job que verifica préstamos vencidos cada hora
     * Generación automática de multas en la base de datos
     * Actualización automática de multas si el retraso aumenta
+    * Sistema de roles: Usuarios Normales y Administradores
+    * Protección con contraseña para crear administradores
     
 Sistema de Multas Automáticas:
     - El cron job se ejecuta cada hora (configurable)
@@ -30,6 +32,11 @@ Sistema de Multas Automáticas:
     - Envía correos de notificación automáticamente
     - Actualiza el estado del préstamo a "Con Multa"
     - Las multas se registran en la sección de Multas
+
+Sistema de Seguridad:
+    - Usuarios Normales: Solo lectura, ven sus propios préstamos/multas
+    - Administradores: Control total del sistema
+    - Contraseña maestra para crear nuevos administradores
     """,
     'author': "My Company",
     'website': "https://www.yourcompany.com",
@@ -42,6 +49,7 @@ Sistema de Multas Automáticas:
     # Archivos de datos en orden de carga
     'data': [
         # 1. Seguridad (debe cargarse primero)
+        'security/biblioteca_security.xml',
         'security/ir.model.access.csv',
         
         # 2. Secuencias (necesarias para crear registros)
