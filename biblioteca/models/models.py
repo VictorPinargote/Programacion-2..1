@@ -713,40 +713,97 @@ class BibliotecaPrestamo(models.Model):
 
     @api.model
     def _cron_verificar_prestamos_vencidos(self):
+        """
+        CRON JOB MEJORADO CON DEBUG COMPLETO
+        Verifica préstamos vencidos y genera multas automáticamente
+        """
+        _logger.info("="*80)
         _logger.info("=== INICIANDO VERIFICACIÓN DE PRÉSTAMOS VENCIDOS ===")
+        _logger.info("="*80)
         
-        config = self.env['biblioteca.configuracion'].get_config()
-        fecha_actual = fields.Datetime.now()
-        
-        prestamos_vencidos = self.search([
-            ('estado', '=', 'p'),
-            ('fecha_maxima', '<', fecha_actual),
-            ('notificacion_enviada', '=', False),
-        ])
-        
-        _logger.info(f"Préstamos vencidos encontrados: {len(prestamos_vencidos)}")
-        
-        for prestamo in prestamos_vencidos:
-            try:
-                dias_retraso = (fecha_actual - prestamo.fecha_maxima).days
-                
-                if dias_retraso >= config.dias_gracia_notificacion:
-                    _logger.info(f"Procesando préstamo {prestamo.name} - Retraso: {dias_retraso} días")
+        try:
+            # Obtener configuración
+            config = self.env['biblioteca.configuracion'].get_config()
+            _logger.info(f"✅ Configuración obtenida - Días de gracia: {config.dias_gracia_notificacion}")
+            _logger.info(f"✅ Monto por día: ${config.monto_multa_dia}")
+            
+            fecha_actual = fields.Datetime.now()
+            _logger.info(f"📅 Fecha actual: {fecha_actual}")
+            
+            # Buscar TODOS los préstamos activos primero (sin filtros)
+            todos_prestamos_activos = self.search([('estado', '=', 'p')])
+            _logger.info(f"📊 Total de préstamos activos (estado='p'): {len(todos_prestamos_activos)}")
+            
+            if todos_prestamos_activos:
+                _logger.info("📋 Detalles de préstamos activos:")
+                for p in todos_prestamos_activos:
+                    _logger.info(f"  - {p.name}: {p.libro_id.titulo}")
+                    _logger.info(f"    Fecha máxima: {p.fecha_maxima}")
+                    _logger.info(f"    ¿Vencido?: {p.fecha_maxima < fecha_actual}")
+                    _logger.info(f"    ¿Notificado?: {p.notificacion_enviada}")
+            
+            # Ahora buscar los que cumplen TODAS las condiciones
+            prestamos_vencidos = self.search([
+                ('estado', '=', 'p'),
+                ('fecha_maxima', '<', fecha_actual),
+                ('notificacion_enviada', '=', False),
+            ])
+            
+            _logger.info(f"🔍 Préstamos que cumplen condiciones: {len(prestamos_vencidos)}")
+            
+            if len(prestamos_vencidos) == 0:
+                _logger.warning("⚠️ NO HAY PRÉSTAMOS VENCIDOS QUE PROCESAR")
+                _logger.warning("Posibles razones:")
+                _logger.warning("  1. No hay préstamos activos")
+                _logger.warning("  2. Todos los préstamos están dentro de fecha")
+                _logger.warning("  3. Ya fueron notificados anteriormente")
+                _logger.info("="*80)
+                return
+            
+            contador_exitoso = 0
+            contador_error = 0
+            
+            for prestamo in prestamos_vencidos:
+                try:
+                    _logger.info("-"*60)
+                    _logger.info(f"📝 Procesando préstamo: {prestamo.name}")
+                    _logger.info(f"   Libro: {prestamo.libro_id.titulo}")
+                    _logger.info(f"   Usuario: {prestamo.usuario_id.name}")
+                    _logger.info(f"   Email: {prestamo.email_lector or 'SIN EMAIL'}")
                     
+                    # Calcular días de retraso
+                    dias_retraso = (fecha_actual - prestamo.fecha_maxima).days
+                    _logger.info(f"   Días de retraso: {dias_retraso}")
+                    
+                    # Verificar días de gracia
+                    if dias_retraso < config.dias_gracia_notificacion:
+                        _logger.info(f"   ⏳ Aún en período de gracia ({config.dias_gracia_notificacion} días)")
+                        continue
+                    
+                    _logger.info(f"   ✅ Supera días de gracia, procediendo a generar multa...")
+                    
+                    # Intentar generar multa
                     multa = prestamo._generar_multa_automatica(dias_retraso, config)
                     
                     if multa:
-                        _logger.info(f"✅ Multa creada: {multa.name} - Monto: ${multa.monto}")
+                        _logger.info(f"   ✅ MULTA CREADA: {multa.name}")
+                        _logger.info(f"      ID: {multa.id}")
+                        _logger.info(f"      Monto: ${multa.monto}")
+                        _logger.info(f"      Tipo: {multa.tipo_multa}")
+                        _logger.info(f"      Estado: {multa.state}")
                         
+                        # Intentar enviar correo
                         if prestamo.email_lector:
+                            _logger.info(f"   📧 Intentando enviar correo a: {prestamo.email_lector}")
                             correo_enviado = prestamo._enviar_correo_multa(multa, config)
                             if correo_enviado:
-                                _logger.info(f"✅ Correo enviado a {prestamo.email_lector}")
+                                _logger.info(f"   ✅ Correo enviado exitosamente")
                             else:
-                                _logger.warning(f"⚠️ No se pudo enviar correo")
+                                _logger.warning(f"   ⚠️ No se pudo enviar correo")
                         else:
-                            _logger.warning(f"⚠️ Préstamo {prestamo.name} no tiene email")
+                            _logger.warning(f"   ⚠️ Préstamo sin email configurado")
                         
+                        # Actualizar estado del préstamo
                         prestamo.write({
                             'estado': 'm',
                             'multa_bol': True,
@@ -754,38 +811,86 @@ class BibliotecaPrestamo(models.Model):
                             'notificacion_enviada': True,
                             'fecha_notificacion': fecha_actual
                         })
-                    else:
-                        _logger.error(f"❌ No se pudo crear multa para préstamo {prestamo.name}")
+                        _logger.info(f"   ✅ Préstamo actualizado a estado 'Con Multa'")
                         
-            except Exception as e:
-                _logger.error(f"❌ Error procesando préstamo {prestamo.name}: {str(e)}")
-                continue
-        
-        _logger.info("=== VERIFICACIÓN COMPLETADA ===")
+                        contador_exitoso += 1
+                        
+                    else:
+                        _logger.error(f"   ❌ No se pudo crear multa para préstamo {prestamo.name}")
+                        contador_error += 1
+                        
+                except Exception as e:
+                    _logger.error(f"   ❌ ERROR procesando préstamo {prestamo.name}:")
+                    _logger.error(f"      Tipo de error: {type(e).__name__}")
+                    _logger.error(f"      Mensaje: {str(e)}")
+                    contador_error += 1
+                    continue
+            
+            _logger.info("-"*60)
+            _logger.info("="*80)
+            _logger.info("=== RESUMEN DE VERIFICACIÓN ===")
+            _logger.info(f"✅ Multas generadas exitosamente: {contador_exitoso}")
+            _logger.info(f"❌ Errores encontrados: {contador_error}")
+            _logger.info("="*80)
+            
+        except Exception as e:
+            _logger.error("="*80)
+            _logger.error("❌ ERROR CRÍTICO EN CRON JOB:")
+            _logger.error(f"   Tipo: {type(e).__name__}")
+            _logger.error(f"   Mensaje: {str(e)}")
+            _logger.error("="*80)
+            raise
 
     def _generar_multa_automatica(self, dias_retraso, config):
+        """
+        Genera o actualiza multa automáticamente por retraso
+        VERSIÓN CON DEBUG MEJORADO
+        """
         self.ensure_one()
         
-        multa_existente = self.env['biblioteca.multa'].search([
-            ('prestamo_id', '=', self.id),
-            ('tipo_multa', '=', 'retraso'),
-            ('state', '=', 'pendiente')
-        ], limit=1)
+        _logger.info(f"      🔧 Intentando generar/actualizar multa...")
         
-        monto_actualizado = dias_retraso * config.monto_multa_dia
-        fecha_vencimiento = fields.Date.today() + timedelta(days=30)
-        
-        if multa_existente:
-            multa_existente.write({
-                'dias_retraso': dias_retraso,
-                'monto': monto_actualizado,
-                'descripcion': f'Retraso de {dias_retraso} días (actualizado automáticamente)',
-                'fecha_vencimiento': fecha_vencimiento
-            })
-            _logger.info(f"Multa ACTUALIZADA: {multa_existente.name}")
-            return multa_existente
-        else:
-            try:
+        try:
+            # Buscar si ya existe una multa de retraso para este préstamo
+            multa_existente = self.env['biblioteca.multa'].search([
+                ('prestamo_id', '=', self.id),
+                ('tipo_multa', '=', 'retraso'),
+                ('state', '=', 'pendiente')
+            ], limit=1)
+            
+            monto_actualizado = dias_retraso * config.monto_multa_dia
+            fecha_vencimiento = fields.Date.today() + timedelta(days=30)
+            
+            if multa_existente:
+                _logger.info(f"      📝 Multa existente encontrada: {multa_existente.name}")
+                _logger.info(f"         Actualizando monto de ${multa_existente.monto} a ${monto_actualizado}")
+                
+                multa_existente.write({
+                    'dias_retraso': dias_retraso,
+                    'monto': monto_actualizado,
+                    'descripcion': f'Retraso de {dias_retraso} días (actualizado automáticamente)',
+                    'fecha_vencimiento': fecha_vencimiento
+                })
+                
+                _logger.info(f"      ✅ Multa ACTUALIZADA exitosamente")
+                return multa_existente
+                
+            else:
+                _logger.info(f"      🆕 No existe multa previa, creando nueva...")
+                _logger.info(f"         Usuario ID: {self.usuario_id.id}")
+                _logger.info(f"         Préstamo ID: {self.id}")
+                _logger.info(f"         Monto: ${monto_actualizado}")
+                _logger.info(f"         Días retraso: {dias_retraso}")
+                
+                # Verificar que la secuencia existe
+                secuencia = self.env['ir.sequence'].search([('code', '=', 'biblioteca.multa')], limit=1)
+                if not secuencia:
+                    _logger.error(f"      ❌ SECUENCIA 'biblioteca.multa' NO ENCONTRADA")
+                    return False
+                
+                _logger.info(f"      ✅ Secuencia encontrada: {secuencia.name}")
+                
+                # Crear nueva multa
                 multa = self.env['biblioteca.multa'].create({
                     'usuario_id': self.usuario_id.id,
                     'prestamo_id': self.id,
@@ -797,27 +902,43 @@ class BibliotecaPrestamo(models.Model):
                     'state': 'pendiente'
                 })
                 
-                _logger.info(f"Multa CREADA: {multa.name} - Monto: ${monto_actualizado}")
+                _logger.info(f"      ✅ Multa CREADA exitosamente: {multa.name} (ID: {multa.id})")
                 return multa
                 
-            except Exception as e:
-                _logger.error(f"Error al crear multa: {str(e)}")
-                return False
+        except Exception as e:
+            _logger.error(f"      ❌ ERROR al generar multa:")
+            _logger.error(f"         Tipo: {type(e).__name__}")
+            _logger.error(f"         Mensaje: {str(e)}")
+            import traceback
+            _logger.error(f"         Traceback: {traceback.format_exc()}")
+            return False
 
     def _enviar_correo_multa(self, multa, config):
+        """
+        Envía correo al lector notificando sobre la multa
+        VERSIÓN CON DEBUG MEJORADO
+        """
         try:
+            _logger.info(f"      📧 Buscando plantilla de email...")
+            
             template = self.env.ref('biblioteca.email_template_notificacion_multa', raise_if_not_found=False)
             
             if not template:
-                _logger.error("Plantilla de correo no encontrada")
+                _logger.error(f"      ❌ Plantilla 'email_template_notificacion_multa' no encontrada")
                 return False
             
+            _logger.info(f"      ✅ Plantilla encontrada: {template.name}")
+            _logger.info(f"         Intentando enviar a: {self.email_lector}")
+            
             template.send_mail(self.id, force_send=True)
-            _logger.info(f"Correo enviado exitosamente")
+            
+            _logger.info(f"      ✅ Correo enviado exitosamente")
             return True
             
         except Exception as e:
-            _logger.error(f"Error al enviar correo: {str(e)}")
+            _logger.error(f"      ❌ ERROR al enviar correo:")
+            _logger.error(f"         Tipo: {type(e).__name__}")
+            _logger.error(f"         Mensaje: {str(e)}")
             return False
 
 
