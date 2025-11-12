@@ -1,83 +1,37 @@
 # -*- coding: utf-8 -*-
 {
     'name': "biblioteca",
-    'summary': "Sistema de Gestión de Biblioteca con Multas Automáticas",
+
+    'summary': "manejo de bliblioteca",
+
     'description': """
-Sistema de Gestión de Biblioteca con Multas Automáticas
-========================================================
-
-Características principales:
-    * Gestión de libros, autores y editoriales
-    * Integración con OpenLibrary API para importar libros
-    * Control de préstamos con múltiples copias por libro
-    * Sistema inteligente de copias disponibles
-    * Sistema automático de multas por:
-        - Retraso en devolución (automático mediante cron job)
-        - Daño leve del libro (manual al devolver)
-        - Daño grave del libro (manual al devolver)
-        - Pérdida del libro (manual al devolver)
-    * Estados de libros: disponible, prestado, no disponible
-    * Notificaciones automáticas por email cuando se genera multa
-    * Validación de cédulas ecuatorianas
-    * Cron job que verifica préstamos vencidos cada hora
-    * Generación automática de multas en la base de datos
-    * Actualización automática de multas si el retraso aumenta
-    * Sistema de roles: Usuarios Normales y Administradores
-    * Protección con contraseña para crear administradores
-    
-Sistema de Multas Automáticas:
-    - El cron job se ejecuta cada hora (configurable)
-    - Verifica préstamos con fecha_maxima vencida
-    - Genera multas automáticamente después de días de gracia
-    - Envía correos de notificación automáticamente
-    - Actualiza el estado del préstamo a "Con Multa"
-    - Las multas se registran en la sección de Multas
-
-Sistema de Seguridad:
-    - Usuarios Normales: Solo lectura, ven sus propios préstamos/multas
-    - Administradores: Control total del sistema
-    - Contraseña maestra para crear nuevos administradores
+Long description of module's purpose
     """,
-    'author': "My Company",
+
+    'author': "Joel Pinargote",
     'website': "https://www.yourcompany.com",
-    'category': 'Library Management',
-    'version': '1.0',
-    
-    # Dependencias necesarias
-    'depends': ['base', 'mail'],
-    
-    # Archivos de datos en orden de carga
+
+    # Categories can be used to filter modules in modules listing
+    # Check https://github.com/odoo/odoo/blob/15.0/odoo/addons/base/data/ir_module_category_data.xml
+    # for the full list
+    'category': 'biblioteca',
+    'version': '0.1',
+
+    # any module necessary for this one to work correctly
+    'depends': ['base'],
+
+    # always loaded
     'data': [
-        # 1. Seguridad (debe cargarse primero)
-        'security/biblioteca_security.xml',
-        'security/ir.model.access.csv',
-        
-        # 2. Secuencias (necesarias para crear registros)
-        'data/sequence.xml',
-        
-        # 3. Plantillas de email
-        'data/email_template.xml',
-        
-        # 4. Cron jobs (acciones programadas)
-        'data/cron.xml',
-        
-        # 5. Vistas principales
+        # 'security/ir.model.access.csv',
         'views/views.xml',
-        
-        # 6. Vistas de configuración
-        'views/configuracion_views.xml',
+        'views/templates.xml',
+        'views/wizard_views.xml',
     ],
-    
-    # Assets para frontend (si los tienes)
-    'assets': {
-        'web.assets_backend': [
-            # Descomentar si tienes widgets personalizados
-            # 'biblioteca/static/src/widgets/openlibrary_search_widget.js',
-        ],
-    },
-    
-    'application': True,
-    'installable': True,
-    'auto_install': False,
+    # only loaded in demonstration mode
+    'demo': [
+        'demo/demo.xml',
+    ],
+    #hacele saber al odoo que es una aplicacion
+    'aplication': True,
     'license': 'LGPL-3',
 }

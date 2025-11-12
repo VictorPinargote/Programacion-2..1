@@ -1,636 +1,251 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data>
 
-    <!-- Actions -->
-    <record model="ir.actions.act_window" id="biblioteca_libro_action_window">
-      <field name="name">Libros</field>
-      <field name="res_model">biblioteca.libro</field>
-      <field name="view_mode">list,form</field>
+    <!-- views del modelo biblioteca.autor "lista" -->
+    <record model="ir.ui.view" id="view_biblioteca_autor_list">
+      <field name="name">biblioteca_autor_ist</field>
+      <field name="model">biblioteca.autor</field>
+      <field name="arch" type="xml">
+        <list string="lista de autor de libros">
+          <field name="firtsname"/>
+          <field name="lastname"/>
+          <field name="libros_ids"/>
+          <field name="fecha_nacimiento"/>
+        </list>
+      </field>
     </record>
 
+    <!-- views del modelo biblioteca.autor "formulario/detalles" -->
+    <record model="ir.ui.view" id="view_biblioteca_autor_form">
+      <field name="name">biblioteca_autor_form</field>
+      <field name="model">biblioteca.autor</field>
+      <field name="arch" type="xml">
+        <form string="formulario de lista de autor de libros">
+          <group>
+            <field name="firtsname"/>
+            <field name="lastname"/>
+            <field name="fecha_nacimiento"/>
+            <field name="libros_ids" nolabel="1">
+              <!-- para que se muestre cierta infomacion en la lista -->
+              <list string="Libros del autor" open="false" edit="false" delete="false">
+                <field name="codigo_libro"/>
+                <field name="name"/>
+                <field name="publicacion"/>
+              </list>
+              <!-- para que se muestre cierta infomacion en el formulario -->
+              <form string="Libros del autor" open="false" edit="false" delete="false">
+                <field name="codigo_libro"/>
+                <field name="name"/>
+                <field name="publicacion"/>
+              </form>
+            </field>
+          </group>
+        </form>
+      </field>
+    </record>
+
+    <!-- views del modelo biblioteca.libro "lista" -->
+    <record model="ir.ui.view" id="view_biblioteca_libro_list">
+      <field name="name">biblioteca_libro_list</field>
+      <field name="model">biblioteca.libro</field>
+      <field name="arch" type="xml">
+        <List string="formulario de lista de autor de libros">
+          <field name="codigo_libro"/>
+          <field name="name"/>
+          <field name="autor"/>
+          <field name="titulo"/>
+          <field name="fecha_publicacion"/>
+          <field name="ejemplares"/>
+          <field name="costo"/>
+          <field name="categoria"/>
+          <field name="isbn"/>
+          <field name="description"/>
+          <field name="ubicacion"/>
+        </list>
+      </field>
+    </record>
+
+    <!-- views del modelo biblioteca.autor "formulario/detalles" -->
+    <record model="ir.ui.view" id="view_biblioteca_libro_form">
+      <field name="name">biblioteca list</field>
+      <field name="model">biblioteca.biblioteca</field>
+      <field name="arch" type="xml">
+        <form string="formulario de lista de autor de libros">
+          <group>
+            <field name="codigo_libro"/>
+            <field name="name"/>
+            <field name="autor"/>
+            <field name="titulo"/>
+            <field name="fecha_publicacion"/>
+            <field name="ejemplares"/>
+            <field name="costo"/>
+            <field name="categoria"/>
+            <field name="isbn"/>
+            <field name="description"/>
+            <field name="ubicacion"/>
+          </group>
+        </form>
+      </field>
+    </record>
+
+    <!-- views del modelo biblioteca.prestamo "lista" -->
+    <record model="ir.ui.view" id="view_biblioteca_prestamo_list">
+      <field name="name">biblioteca_prestamo_list</field>
+      <field name="model">biblioteca.prestamo</field>
+      <field name="arch" type="xml">
+        <list string="formulario de lista de autor de libros">
+          <field name="name"/>
+          <field name="fecha_prestamo"/>
+          <field name="libro_id"/>
+          <field name="usuario_id"/>
+          <field name="fecha_devolucion"/>
+          <field name="multa_bol"/>
+          <field name="multa"/>
+          <field name="fecha_maxima"/>
+          <field name="usuraio"/>
+          <field name="estado"/>
+          <field name="multas_ids"/>
+        </list>
+      </field>
+    </record>
+
+    <!-- views del modelo biblioteca.prestamo "formulario/detalles" -->
+    <record model="ir.ui.view" id="view_biblioteca_prestamo_form">
+      <field name="name">biblioteca_prestamo_form</field>
+      <field name="model">biblioteca.prestamo</field>
+      <field name="arch" type="xml">
+        <form>
+          <header>
+            <button string="Prestar" type="object" name="cerrar_prestamo" class="oe_highlight"/>
+          </header>
+          
+          
+          <group>
+            <field name="name"/>
+            <field name="fecha_prestamo"/>
+            <field name="libro_id"/>
+            <field name="usuario_id"/>
+            <field name="fecha_devolucion"/>
+            <field name="multa_bol"/>
+            <field name="multa"/>
+            <field name="fecha_maxima"/>
+            <field name="usuraio"/>
+            <field name="estado"/>
+            <field name="multas_ids"/>
+          </group>
+        </form>
+      </field>
+    </record>
+
+    <!-- views del modelo biblioteca.multa "lista" -->
+    <record model="ir.ui.view" id="view_biblioteca_multa_list">
+      <field name="name">biblioteca_prestamo_list</field>
+      <field name="model">biblioteca.multa</field>
+      <field name="arch" type="xml">
+        <list string="formulario de lista de autor de libros">
+          <field name="name"/>
+          <field name="multa"/>
+          <field name="costo_multa"/>
+          <field name="fecha_multa"/>
+          <field name="motivo"/>
+          <field name="prestamo"/>
+        </list>
+      </field>
+    </record>
+
+    <!-- views del modelo biblioteca.multa "formulario/detalles" -->
+    <record model="ir.ui.view" id="view_biblioteca_multa_form">
+      <field name="name">biblioteca_multa_form</field>
+      <field name="model">biblioteca.multa</field>
+      <field name="arch" type="xml">
+        <form string="formulario de lista de autor de libros">
+          <group>
+            <field name="name"/>
+            <field name="multa"/>
+            <field name="costo_multa"/>
+            <field name="fecha_multa"/>
+            <field name="motivo"/>
+            <field name="prestamo"/>
+          </group>
+        </form>
+      </field>
+    </record>
+
+    <!-- actions opening views on models -->
+
     <record model="ir.actions.act_window" id="biblioteca_autor_action_window">
-      <field name="name">Autores</field>
+      <field name="name">biblioteca autor</field>
       <field name="res_model">biblioteca.autor</field>
       <field name="view_mode">list,form</field>
     </record>
 
-    <record model="ir.actions.act_window" id="biblioteca_editorial_action_window">
-      <field name="name">Editoriales</field>
-      <field name="res_model">biblioteca.editorial</field>
-      <field name="view_mode">list,form</field>
-    </record>
-
-    <record model="ir.actions.act_window" id="biblioteca_usuario_action_window">
-      <field name="name">Usuarios</field>
-      <field name="res_model">biblioteca.usuario</field>
+    <record model="ir.actions.act_window" id="biblioteca_libro_action_window">
+      <field name="name">biblioteca libro</field>
+      <field name="res_model">biblioteca.libro</field>
       <field name="view_mode">list,form</field>
     </record>
 
     <record model="ir.actions.act_window" id="biblioteca_prestamo_action_window">
-      <field name="name">Préstamos</field>
+      <field name="name">biblioteca prestamo</field>
       <field name="res_model">biblioteca.prestamo</field>
       <field name="view_mode">list,form</field>
     </record>
 
     <record model="ir.actions.act_window" id="biblioteca_multa_action_window">
-      <field name="name">Multas</field>
+      <field name="name">biblioteca multa</field>
       <field name="res_model">biblioteca.multa</field>
       <field name="view_mode">list,form</field>
     </record>
 
-    <!-- NUEVO: Action para Gestión de Usuarios del Sistema -->
-    <record model="ir.actions.act_window" id="biblioteca_usuario_sistema_action_window">
-      <field name="name">Gestión de Usuarios del Sistema</field>
-      <field name="res_model">biblioteca.usuario.sistema</field>
-      <field name="view_mode">list,form</field>
-    </record>
-
-    <!-- Vista Lista de Libros -->
-    <record model="ir.ui.view" id="biblioteca_libro_list">
-      <field name="name">biblioteca.libro.list</field>
-      <field name="model">biblioteca.libro</field>
-      <field name="arch" type="xml">
-        <list>
-          <field name="titulo"/>
-          <field name="autor"/>
-          <field name="ejemplares"/>
-          <field name="copias_disponibles"/>
-          <field name="copias_prestadas"/>
-          <field name="isbn"/>
-          <field name="estado_libro" 
-                 decoration-success="estado_libro == 'disponible'"
-                 decoration-warning="estado_libro == 'prestado'"
-                 decoration-danger="estado_libro == 'no_disponible'"/>
-          <field name="prestamos_activos"/>
-        </list>
+    <!-- server action to the one above -->
+<!--
+    <record model="ir.actions.server" id="biblioteca.action_server">
+      <field name="name">biblioteca server</field>
+      <field name="model_id" ref="model_biblioteca_biblioteca"/>
+      <field name="state">code</field>
+      <field name="code">
+        action = {
+          "type": "ir.actions.act_window",
+          "view_mode": "list,form",
+          "res_model": model._name,
+        }
       </field>
     </record>
+-->
 
-    <!-- Vista Formulario de Libros -->
-    <record model="ir.ui.view" id="biblioteca_libro_form">
-      <field name="name">biblioteca.libro.form</field>
-      <field name="model">biblioteca.libro</field>
-      <field name="arch" type="xml">
-        <form string="Libro">
-          <header>
-            <button name="action_buscar_openlibrary" type="object" string="Buscar en OpenLibrary" 
-                    class="oe_highlight" groups="biblioteca.group_biblioteca_administrador"/>
-            <field name="estado_libro" widget="badge" 
-                   decoration-success="estado_libro == 'disponible'"
-                   decoration-warning="estado_libro == 'prestado'"
-                   decoration-danger="estado_libro == 'no_disponible'"/>
-          </header>
-          <sheet>
-            <group>
-              <group>
-                <field name="firstname"/>
-                <field name="titulo"/>
-                <field name="autor"/>
-                <field name="editorial"/>
-                <field name="genero"/>
-              </group>
-              <group>
-                <field name="isbn"/>
-                <field name="ejemplares" groups="biblioteca.group_biblioteca_administrador"/>
-                <field name="ejemplares" groups="biblioteca.group_biblioteca_usuario" readonly="1"/>
-                <field name="copias_disponibles" readonly="1"/>
-                <field name="copias_prestadas" readonly="1"/>
-                <field name="costo"/>
-                <field name="prestamos_activos" readonly="1"/>
-              </group>
-            </group>
-            <group>
-              <field name="description"/>
-              <field name="fecha_publicacion"/>
-              <field name="paginas"/>
-              <field name="ubicacion"/>
-            </group>
-            <notebook>
-              <page string="Historial de Préstamos">
-                <field name="prestamo_ids">
-                  <list>
-                    <field name="name"/>
-                    <field name="fecha_prestamo"/>
-                    <field name="fecha_devolucion"/>
-                    <field name="usuario_id"/>
-                    <field name="estado"/>
-                    <field name="condicion_devolucion"/>
-                  </list>
-                </field>
-              </page>
-            </notebook>
-          </sheet>
-        </form>
-      </field>
-    </record>
+    <!-- Top menu item -->
 
-    <!-- Vista Lista de Autores -->
-    <record model="ir.ui.view" id="biblioteca_autor_list">
-      <field name="name">biblioteca.autor.list</field>
-      <field name="model">biblioteca.autor</field>
-      <field name="arch" type="xml">
-        <list>
-          <field name="firstname"/>
-          <field name="lastname"/>
-        </list>
-      </field>
-    </record>
+    <menuitem name="biblioteca" id="biblioteca.menu_root"/>
 
-    <!-- Vista Formulario de Autores -->
-    <record model="ir.ui.view" id="biblioteca_autor_form">
-      <field name="name">biblioteca.autor.form</field>
-      <field name="model">biblioteca.autor</field>
-      <field name="arch" type="xml">
-        <form>
-          <sheet>
-            <group>
-              <field name="firstname"/>
-              <field name="lastname"/>
-              <field name="nacimiento"/>
-              <field name="libro_ids"/>
-            </group>
-          </sheet>
-        </form>
-      </field>
-    </record>
+    <!-- menu categories -->
 
-    <!-- Vista Lista de Editoriales -->
-    <record model="ir.ui.view" id="biblioteca_editorial_list">
-      <field name="name">biblioteca.editorial.list</field>
-      <field name="model">biblioteca.editorial</field>
-      <field name="arch" type="xml">
-        <list>
-          <field name="name"/>
-          <field name="pais"/>
-        </list>
-      </field>
-    </record>
+    <menuitem name="autores" id="biblioteca_menu_autores" parent="biblioteca.menu_root"/>
+    <menuitem name="libro" id="biblioteca.menu_libros" parent="biblioteca.menu_root"/>
+    <menuitem name="prestamos" id="biblioteca.menu_prestamos" parent="biblioteca.menu_root"/>
+    <menuitem name="multas" id="biblioteca.menu_multas" parent="biblioteca.menu_root"/>
 
-    <!-- Vista Formulario de Editoriales -->
-    <record model="ir.ui.view" id="biblioteca_editorial_form">
-      <field name="name">biblioteca.editorial.form</field>
-      <field name="model">biblioteca.editorial</field>
-      <field name="arch" type="xml">
-        <form>
-          <sheet>
-            <group>
-              <field name="name"/>
-              <field name="pais"/>
-              <field name="ciudad"/>
-            </group>
-          </sheet>
-        </form>
-      </field>
-    </record>
+    <!-- actions -->
 
-    <!-- Vista Lista de Usuarios -->
-    <record model="ir.ui.view" id="biblioteca_usuario_list">
-      <field name="name">biblioteca.usuario.list</field>
-      <field name="model">biblioteca.usuario</field>
-      <field name="arch" type="xml">
-        <list>
-          <field name="name"/>
-          <field name="cedula"/>
-          <field name="email"/>
-          <field name="phone"/>
-          <field name="prestamo_count"/>
-          <field name="multa_pendiente_count" decoration-danger="multa_pendiente_count > 0"/>
-        </list>
-      </field>
-    </record>
+    <menuitem name="autores" 
+              id="biblioteca.menu_autor" 
+              parent="biblioteca_menu_autores"
+              action="biblioteca_autor_action_window"/>
 
-    <!-- Vista Formulario de Usuarios -->
-    <record model="ir.ui.view" id="biblioteca_usuario_form">
-      <field name="name">biblioteca.usuario.form</field>
-      <field name="model">biblioteca.usuario</field>
-      <field name="arch" type="xml">
-        <form>
-          <sheet>
-            <group>
-              <group>
-                <field name="name" placeholder="Ingrese nombre completo"/>
-                <field name="cedula" placeholder="Ej: 1712345678"/>
-              </group>
-              <group>
-                <field name="phone" placeholder="+593 99 999 9999"/>
-                <field name="email" placeholder="correo@ejemplo.com"/>
-              </group>
-            </group>
-            
-            <notebook>
-              <page string="Préstamos">
-                <field name="prestamo_ids">
-                  <list>
-                    <field name="name"/>
-                    <field name="libro_id"/>
-                    <field name="fecha_prestamo"/>
-                    <field name="fecha_maxima"/>
-                    <field name="estado"/>
-                  </list>
-                </field>
-              </page>
-              <page string="Multas">
-                <field name="multa_ids">
-                  <list>
-                    <field name="name"/>
-                    <field name="prestamo_id"/>
-                    <field name="monto"/>
-                    <field name="dias_retraso"/>
-                    <field name="tipo_multa"/>
-                    <field name="state"/>
-                  </list>
-                </field>
-              </page>
-            </notebook>
-          </sheet>
-        </form>
-      </field>
-    </record>
+    <menuitem name="libros" 
+              id="biblioteca.menu_autor" 
+              parent="biblioteca_menu_autores"
+              action="biblioteca_autor_action_window"/>
 
-    <!-- ============================================== -->
-    <!-- NUEVO: VISTAS PARA GESTIÓN DE USUARIOS DEL SISTEMA -->
-    <!-- ============================================== -->
+    <menuitem name="prestamos" 
+              id="biblioteca.menu_prestamo" 
+              parent="biblioteca_menu_autores"
+              action="biblioteca_autor_action_window"/>
 
-    <!-- Vista Lista de Usuarios del Sistema -->
-    <record model="ir.ui.view" id="biblioteca_usuario_sistema_list">
-      <field name="name">biblioteca.usuario.sistema.list</field>
-      <field name="model">biblioteca.usuario.sistema</field>
-      <field name="arch" type="xml">
-        <list string="Usuarios del Sistema" create="true">
-          <field name="name"/>
-          <field name="login"/>
-          <field name="email"/>
-          <field name="es_administrador" widget="boolean" readonly="1"/>
-          <field name="user_id" readonly="1"/>
-        </list>
-      </field>
-    </record>
-
-<!-- Vista Formulario de Usuario del Sistema - ACTUALIZADO -->
-    <record model="ir.ui.view" id="biblioteca_usuario_sistema_form">
-      <field name="name">biblioteca.usuario.sistema.form</field>
-      <field name="model">biblioteca.usuario.sistema</field>
-      <field name="arch" type="xml">
-        <form string="Crear Usuario del Sistema">
-          <header>
-            <!-- Botón para crear Usuario Normal -->
-            <button name="action_crear_usuario_normal" 
-                    type="object" 
-                    string="👤 Crear Usuario Normal" 
-                    class="oe_highlight"
-                    invisible="user_id"
-                    help="Crea un usuario con permisos de solo lectura"/>
-            
-            <!-- Botón para crear Administrador (requiere contraseña) -->
-            <button name="action_crear_administrador" 
-                    type="object" 
-                    string="🔐 Crear Administrador" 
-                    class="btn-warning"
-                    invisible="user_id"
-                    help="Requiere contraseña maestra. Crea un administrador con control total"/>
-            
-            <!-- ✅ NUEVO: Botón para arreglar usuarios ya creados -->
-            <button name="action_arreglar_usuario" 
-                    type="object" 
-                    string="🔧 Arreglar Permisos" 
-                    class="btn-info"
-                    invisible="not user_id"
-                    help="Arregla los permisos de este usuario para que pueda iniciar sesión"/>
-            
-            <!-- Badge de estado -->
-            <field name="es_administrador" widget="badge" 
-                   decoration-danger="es_administrador == True"
-                   decoration-success="es_administrador == False"
-                   invisible="not user_id"/>
-          </header>
-          
-          <sheet>
-            <!-- ✅ NUEVA Alerta de advertencia si ya fue creado -->
-            <div class="alert alert-warning" role="alert" invisible="not user_id">
-              <strong>⚠️ Usuario Ya Creado</strong>
-              <p style="margin-top: 5px;">
-                Este usuario ya existe en Odoo. Si no puede iniciar sesión, 
-                haga clic en el botón <strong>"🔧 Arreglar Permisos"</strong> arriba.
-              </p>
-            </div>
-
-            <!-- Alerta de éxito -->
-            <div class="alert alert-success" role="alert" invisible="not user_id">
-              <strong>✅ Usuario en el Sistema</strong>
-              <p style="margin-top: 5px;">
-                Login: <strong><field name="login" readonly="1" nolabel="1"/></strong>
-              </p>
-            </div>
-
-            <!-- Información del Usuario -->
-            <group string="📋 Información del Usuario">
-              <group>
-                <field name="name" placeholder="Ej: Juan Pérez" required="1" readonly="user_id"/>
-                <field name="login" placeholder="Ej: juanperez" required="1" readonly="user_id"/>
-              </group>
-              <group>
-                <field name="password" password="True" placeholder="Contraseña del usuario" required="1" readonly="user_id"/>
-                <field name="email" placeholder="correo@ejemplo.com" readonly="user_id"/>
-              </group>
-            </group>
-
-            <!-- Sección de Contraseña de Administrador -->
-            <group string="🔐 Contraseña de Administrador" invisible="user_id">
-              <div class="alert alert-warning" role="alert">
-                <p><strong>⚠️ Importante:</strong></p>
-                <ul style="margin: 10px 0; padding-left: 20px;">
-                  <li>Para crear un <strong>Usuario Normal</strong>: Haga clic en "👤 Crear Usuario Normal" (no requiere contraseña maestra)</li>
-                  <li>Para crear un <strong>Administrador</strong>: Ingrese la contraseña maestra abajo y haga clic en "🔐 Crear Administrador"</li>
-                </ul>
-              </div>
-              <field name="contrasena_admin" 
-                     password="True" 
-                     placeholder="Ingrese la contraseña maestra para crear administrador"
-                     help="Esta contraseña está configurada en el código del sistema"/>
-            </group>
-
-            <!-- Información adicional si ya está creado -->
-            <group string="📊 Estado del Usuario" invisible="not user_id">
-              <field name="user_id" readonly="1"/>
-              <field name="es_administrador" readonly="1"/>
-            </group>
-
-            <!-- Notas informativas -->
-            <group invisible="user_id">
-              <div class="alert alert-info" role="alert">
-                <strong>ℹ️ Tipos de Usuario:</strong>
-                <br/><br/>
-                <strong>👤 Usuario Normal:</strong>
-                <ul style="margin: 5px 0; padding-left: 20px;">
-                  <li>Solo puede VER información (libros, autores, editoriales)</li>
-                  <li>Puede ver sus propios préstamos y multas</li>
-                  <li>NO puede crear préstamos ni modificar configuración</li>
-                </ul>
-                <br/>
-                <strong>🔐 Administrador:</strong>
-                <ul style="margin: 5px 0; padding-left: 20px;">
-                  <li>Control TOTAL del sistema</li>
-                  <li>Puede crear y gestionar préstamos</li>
-                  <li>Puede ver TODOS los préstamos y multas</li>
-                  <li>Puede modificar configuración del sistema</li>
-                  <li>Requiere contraseña maestra para ser creado</li>
-                </ul>
-              </div>
-            </group>
-          </sheet>
-        </form>
-      </field>
-    </record>
-
-    <!-- Vista Lista de Préstamos -->
-    <record model="ir.ui.view" id="biblioteca_prestamo_list">
-      <field name="name">biblioteca.prestamo.list</field>
-      <field name="model">biblioteca.prestamo</field>
-      <field name="arch" type="xml">
-        <list>
-          <field name="name"/>
-          <field name="libro_id"/>
-          <field name="usuario_id"/>
-          <field name="fecha_prestamo"/>
-          <field name="fecha_maxima"/>
-          <field name="estado" 
-                 decoration-success="estado == 'd'"
-                 decoration-warning="estado == 'p'"
-                 decoration-danger="estado == 'm'"/>
-          <field name="condicion_devolucion" optional="show"/>
-          <field name="dias_retraso" optional="show" decoration-danger="dias_retraso > 0"/>
-          <field name="notificacion_enviada" optional="hide"/>
-        </list>
-      </field>
-    </record>
-
-    <!-- Vista Formulario de Préstamos -->
-    <record model="ir.ui.view" id="biblioteca_prestamo_form">
-      <field name="name">biblioteca.prestamo.form</field>
-      <field name="model">biblioteca.prestamo</field>
-      <field name="arch" type="xml">
-        <form string="Préstamo">
-          <header>
-            <button name="generar_prestamo" type="object" string="Prestar Libro" 
-                    class="btn-primary" invisible="estado in ['p','d','m']"
-                    groups="biblioteca.group_biblioteca_administrador"/>
-            <button name="action_devolver" type="object" string="Devolver Libro" 
-                    class="btn-success" invisible="estado in ['d','b']"
-                    groups="biblioteca.group_biblioteca_administrador"/>
-            <field name="estado" widget="statusbar"/>
-          </header>
-          <sheet>
-            <!-- Alerta de retraso -->
-            <div class="alert alert-danger" role="alert" invisible="dias_retraso == 0 or estado == 'd'">
-              <strong>⚠️ PRÉSTAMO VENCIDO:</strong> Este préstamo tiene 
-              <strong><field name="dias_retraso" readonly="1"/></strong> días de retraso.
-              <span invisible="notificacion_enviada">
-              <br/><em>Nota: Se generará una multa automáticamente cuando el sistema ejecute la verificación.</em>
-              </span>
-              <span invisible="not notificacion_enviada">
-              <br/><em>Multa generada y notificación enviada.</em>
-              </span>
-            </div>
-
-            <!-- Información básica del préstamo -->
-            <group>
-              <group>
-                <field name="name"/>
-                <field name="libro_id"/>
-                <field name="usuario_id"/>
-                <field name="email_lector" readonly="1"/>
-              </group>
-              <group>
-                <field name="fecha_prestamo"/>
-                <field name="fecha_maxima"/>
-                <field name="fecha_devolucion"/>
-                <field name="notificacion_enviada" readonly="1"/>
-                <field name="fecha_notificacion" readonly="1" invisible="not notificacion_enviada"/>
-              </group>
-            </group>
-
-            <!-- Sección de Devolución -->
-            <group string="Información de Devolución" invisible="estado == 'b'">
-              <group>
-                <field name="condicion_devolucion" 
-                       required="estado in ['p','m']"
-                       groups="biblioteca.group_biblioteca_administrador"/>
-                <field name="condicion_devolucion" 
-                       groups="biblioteca.group_biblioteca_usuario" 
-                       readonly="1"/>
-              </group>
-              <group>
-                <field name="notas_devolucion" 
-                       placeholder="Ej: Página 15 tiene mancha de café, cubierta rayada..."
-                       groups="biblioteca.group_biblioteca_administrador"/>
-                <field name="notas_devolucion" 
-                       groups="biblioteca.group_biblioteca_usuario" 
-                       readonly="1"/>
-              </group>
-            </group>
-
-            <!-- Sección de multa -->
-            <group string="Información de Multa" invisible="not multa_bol">
-              <field name="multa_bol" invisible="1"/>
-              <field name="multa" widget="monetary"/>
-            </group>
-          </sheet>
-        </form>
-      </field>
-    </record>
-
-    <!-- Vista de Búsqueda de Multas con Filtros -->
-    <record model="ir.ui.view" id="biblioteca_multa_search">
-      <field name="name">biblioteca.multa.search</field>
-      <field name="model">biblioteca.multa</field>
-      <field name="arch" type="xml">
-        <search>
-          <field name="name"/>
-          <field name="usuario_id"/>
-          <field name="prestamo_id"/>
-          
-          <filter name="filter_pendientes" string="Pendientes" 
-                  domain="[('state', '=', 'pendiente')]"/>
-          <filter name="filter_pagadas" string="Pagadas" 
-                  domain="[('state', '=', 'pagada')]"/>
-          <filter name="filter_retraso" string="Por Retraso" 
-                  domain="[('tipo_multa', '=', 'retraso')]"/>
-          
-          <group expand="0" string="Agrupar Por">
-            <filter name="group_estado" string="Estado" context="{'group_by': 'state'}"/>
-            <filter name="group_tipo" string="Tipo de Multa" context="{'group_by': 'tipo_multa'}"/>
-            <filter name="group_usuario" string="Usuario" context="{'group_by': 'usuario_id'}"/>
-          </group>
-        </search>
-      </field>
-    </record>
-
-    <!-- Vista Lista de Multas -->
-    <record model="ir.ui.view" id="biblioteca_multa_list">
-      <field name="name">biblioteca.multa.list</field>
-      <field name="model">biblioteca.multa</field>
-      <field name="arch" type="xml">
-        <list decoration-danger="state == 'pendiente'" decoration-success="state == 'pagada'">
-          <field name="name"/>
-          <field name="usuario_id"/>
-          <field name="prestamo_id"/>
-          <field name="tipo_multa" 
-                 decoration-info="tipo_multa == 'retraso'"
-                 decoration-warning="tipo_multa in ['dano_leve', 'retraso_y_dano']"
-                 decoration-danger="tipo_multa in ['dano_grave', 'perdida']"/>
-          <field name="monto" widget="monetary" sum="Total"/>
-          <field name="dias_retraso"/>
-          <field name="fecha_vencimiento"/>
-          <field name="state" 
-                 decoration-danger="state == 'pendiente'"
-                 decoration-success="state == 'pagada'"
-                 decoration-muted="state == 'cancelada'"/>
-        </list>
-      </field>
-    </record>
-
-    <!-- Vista Formulario de Multas -->
-    <record model="ir.ui.view" id="biblioteca_multa_form">
-      <field name="name">biblioteca.multa.form</field>
-      <field name="model">biblioteca.multa</field>
-      <field name="arch" type="xml">
-        <form>
-          <header>
-            <button name="action_pagar" type="object" string="Registrar Pago" 
-                    class="btn-success" invisible="state in ['pagada','cancelada']"
-                    groups="biblioteca.group_biblioteca_administrador"/>
-            <field name="state" widget="statusbar" statusbar_visible="pendiente,pagada"/>
-          </header>
-          <sheet>
-            <!-- Banner de Estado -->
-            <div class="alert alert-warning" role="alert" invisible="state != 'pendiente'">
-              <strong>⚠️ MULTA PENDIENTE DE PAGO</strong>
-            </div>
-            <div class="alert alert-success" role="alert" invisible="state != 'pagada'">
-              <strong>✅ MULTA PAGADA</strong>
-            </div>
-
-            <!-- Información Principal -->
-            <group>
-              <group>
-                <field name="name" readonly="1"/>
-                <field name="usuario_id" readonly="1"/>
-                <field name="prestamo_id" readonly="1"/>
-                <field name="tipo_multa" readonly="1" 
-                       widget="badge"
-                       decoration-info="tipo_multa == 'retraso'"
-                       decoration-warning="tipo_multa in ['dano_leve', 'retraso_y_dano']"
-                       decoration-danger="tipo_multa in ['dano_grave', 'perdida']"/>
-              </group>
-              <group>
-                <field name="monto" widget="monetary" readonly="1"/>
-                <field name="dias_retraso" readonly="1"/>
-                <field name="fecha_vencimiento" readonly="1"/>
-              </group>
-            </group>
-
-            <!-- Descripción Detallada de la Multa -->
-            <group string="📝 Detalles de la Multa">
-              <field name="descripcion" nolabel="1" readonly="1" 
-                     widget="text" 
-                     placeholder="Descripción detallada de la multa generada automáticamente por el sistema"/>
-            </group>
-
-            <!-- Información del Préstamo Asociado -->
-            <group string="📚 Información del Préstamo">
-              <group>
-                <label for="prestamo_id" string="Libro Prestado"/>
-                <div>
-                  <field name="prestamo_id" invisible="1"/>
-                  <strong>
-                    <field name="prestamo_id" readonly="1" 
-                           widget="many2one" 
-                           options="{'no_create': True, 'no_open': True}"/>
-                  </strong>
-                </div>
-              </group>
-            </group>
-
-            <!-- Información Adicional para Multas Pendientes -->
-            <group string="💡 Información de Pago" invisible="state != 'pendiente'">
-              <div class="alert alert-info" role="alert">
-                <p><strong>Para pagar esta multa:</strong></p>
-                <ul>
-                  <li>Acérquese a la biblioteca con su identificación</li>
-                  <li>Presente el código de la multa: <strong><field name="name" readonly="1" nolabel="1"/></strong></li>
-                  <li>Realice el pago en caja</li>
-                  <li>El personal registrará su pago en el sistema</li>
-                </ul>
-              </div>
-            </group>
-          </sheet>
-        </form>
-      </field>
-    </record>
-
-    <!-- Menús -->
-    <menuitem name="Biblioteca" id="biblioteca_menu" sequence="10"/>
-    <menuitem name="Catálogo" id="biblioteca_menu_catalogo" parent="biblioteca_menu" sequence="10"/>
-    <menuitem name="Gestión de Préstamos" id="biblioteca_menu_gestion" parent="biblioteca_menu" sequence="20"/>
-    
-    <!-- NUEVO: Menú de Administración (solo visible para administradores) -->
-    <menuitem name="Administración" id="biblioteca_menu_administracion" parent="biblioteca_menu" 
-              sequence="30" groups="biblioteca.group_biblioteca_administrador"/>
-
-    <menuitem name="Libros" id="biblioteca.menu_libros" parent="biblioteca_menu_catalogo" action="biblioteca_libro_action_window" sequence="10"/>
-    <menuitem name="Autores" id="biblioteca.menu_autores" parent="biblioteca_menu_catalogo" action="biblioteca_autor_action_window" sequence="20"/>
-    <menuitem name="Editoriales" id="biblioteca.menu_editoriales" parent="biblioteca_menu_catalogo" action="biblioteca_editorial_action_window" sequence="30"/>
-    <menuitem name="Usuarios" id="biblioteca.menu_usuarios" parent="biblioteca_menu_gestion" action="biblioteca_usuario_action_window" sequence="10"/>
-    <menuitem name="Préstamos" id="biblioteca.menu_prestamos" parent="biblioteca_menu_gestion" action="biblioteca_prestamo_action_window" sequence="20"/>
-    <menuitem name="Multas" id="biblioteca.menu_multas" parent="biblioteca_menu_gestion" action="biblioteca_multa_action_window" sequence="30"/>
-    
-    <!-- NUEVO: Menú para gestionar usuarios del sistema -->
-    <menuitem name="Usuarios del Sistema" id="biblioteca.menu_usuarios_sistema" 
-              parent="biblioteca_menu_administracion" 
-              action="biblioteca_usuario_sistema_action_window" 
-              sequence="10"
-              groups="biblioteca.group_biblioteca_administrador"/>
-
+<!--
+    <menuitem name="List" id="biblioteca.menu_1_list" parent="biblioteca.menu_1"
+              action="biblioteca.action_window"/>
+    <menuitem name="Server to list" id="biblioteca" parent="biblioteca.menu_2" 
+              action="biblioteca.action_server"/>
+-->
   </data>
 </odoo>
