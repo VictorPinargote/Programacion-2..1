@@ -11,7 +11,7 @@
 
     <!-- Secuencia para Multas (NECESARIA) -->
     <record id="sequence_codigo_multas" model="ir.sequence">
-        <field name="name">Secuencia de Multas</field>
+        <field name="name">Secuencia deMultas</field>
         <field name="code">biblioteca.multa</field>
         <field name="prefix">MUL-</field>
         <field name="suffix">-RET</field>
