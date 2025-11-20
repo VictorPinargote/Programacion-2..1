@@ -1,96 +1,192 @@
-# -*- coding: utf-8 -*-
-
 from odoo import models, fields, api
-from datetime import timedelta
+from odoo.exceptions import ValidationError, UserError
+from datetime import datetime, timedelta
+import requests
+import logging
+import urllib.parse
 
-class bibliotecaWizard(models.Model):
-    _name = 'biblioteca.wizard'
-    _description = 'modelo biblioteca.wizard'
-    
-    prestamo = fields.Char(string="Nombre del Libro")
-    evaluacion libro = fields.Char(string="Evaluación del Libro")
-    
-    
-    def cerrar_prestamo(self):
-        return {'type': 'ir.actions.act_window_close'}
 
-class bibliotecalibro(models.Model):
+_logger = logging.getLogger(__name__)
+
+class Biblioteca(models.Model):
     _name = 'biblioteca.libro'
-    _description = 'modelo biblioteca.libro'
+    _description = 'biblioteca.libro'
+    _rec_name= 'nombre_libro'
     
-    codigo_libro = fields.Char(string="Código del Libro")
-    name = fields.Char(string="Nombre del Libro") 
-    autor = fields.Many2one('biblioteca.autor', string="Autor") #relación muchos a uno con autor
-    titulo = fields.Char(string="Título", required=True)
-    fecha_publicacion = fields.Date(string="Fecha de Publicación")
-    ejemplares = fields.Integer(string="Número de Ejemplares")
-    costo = fields.Float(string="Costo")
-    categoria = fields.Char(string="categoría")
-    isbn = fields.Char(string="ISBN")
-    description = fields.Text(string="Descripción")
-    ubicacion = fields.Char(string="Ubicación en la Biblioteca")
+    codigo_libro= fields.Char(string='Código del Libro')
+    isbn= fields.Char(string='ISBN')
+    nombre_libro = fields.Char(string='Nombre Libro')
+    autor_id = fields.One2many('biblioteca.autor', 'libros', string='Autor Libro')
+    categoria=fields.Char(string='Categoría')
+    publicacion= fields.Char(string='Año de Publicaciòn')
+    ejemplares= fields.Integer(string='Numero ejemplares')
+    costo = fields.Char(string='Costo')
+    description = fields.Text(string='Resumen libro')
+    ubicacion= fields.Char(string='Ubicación fisica')
 
-class bibliotecaautor(models.Model):
-    
-    _name = 'biblioteca.autor'
-    _description = 'modelo de bibliotecaautor'
-    _recname_ = 'first_name'
-    
-    first_name = fields.Char(string="Primer Nombre")
-    last_name = fields.Char(string="Apellido")
-    fecha_nacimiento = fields.Date(string="Fecha de Nacimiento")
-    libros_ids = fields.Many2many('biblioteca.libro', 'autor_id', string="Libros del Autor") #relación muchos a muchos con libros
+    autor_ids = fields.Many2many(
+        'biblioteca.autor',       
+        string='Autores'
+    )
 
-class bibliotecaprestamo(models.Model):
-    _name = 'biblioteca.prestamo'
-    _description = 'biblioteca.prestamo'
+    def buscar_por_titulo(self):
+        self.ensure_one()
+        if not self.nombre_libro:
+           raise UserError ("Por favor, ingrese un Título antes de buscar.")
     
-    name = fields.Char(string="Código de Préstamo")
-    fecha_prestamo = fields.Date(string="Fecha de Préstamo")
-    libro_id = fields.Many2one('biblioteca.biblioteca', string="Libro")
-    usuario_id = fields.Many2one('biblioteca.usuario', string="Usuario")
-    fecha_devolucion = fields.Date(string="Fecha de Devolución")
-    multa_bol = fields.Boolean(string="¿Tiene Multa?")
-    multa = fields.Float(string="Monto de la Multa")
-    fecha_maxima = fields.Date(compute='_compute_devolucion_fecha_maxima', string="Fecha Máxima de Devolución", store=True)
-    usuario = fields.Many2one('res.users', string="Usuario que realiza el préstamo",
-                              default=lambda self: self.env.user.id) #relación muchos a uno con res.users
-    estado = fields.Selection([('b', 'borrador'),
-                                ('p', 'prestado'),
-                                ('m', 'multa'),
-                                ('d', 'devuelto')],
-                               string="Estado del Préstamo", default='b')
-    multas_ids = fields.One2many('biblioteca.multa', 'presta mo', string="Multas") #relación uno a muchos con multas
-    
-    @api .depends('fecha_maxima')
-    def _compute_devolucion_fecha_maxima(self):
-        for record in self:
-            if record.fecha_prestamo:
-                record.fecha_maxima = record.fecha_prestamo + timedelta(days=2)
+        titulo_limpio = self.nombre_libro.strip()
+        titulo_encoded = urllib.parse.quote_plus(titulo_limpio)
+        
+        url_busqueda = f"https://openlibrary.org/search.json?title={titulo_encoded}"
+        _logger.info(f"Buscando en Open Library por título: {url_busqueda}")
+
+        try:
+            response_busqueda = requests.get(url_busqueda, timeout=10)
+            response_busqueda.raise_for_status()
+            data_busqueda = response_busqueda.json()
+
+            if not data_busqueda or not data_busqueda.get('docs'):
+                raise UserError(f"No se encontró ningún libro con el título '{self.nombre_libro}'.")
+
+            vals_para_actualizar = {}
+            primer_resultado_valido = None
+
+            for resultado in data_busqueda.get('docs', []):
+                
+                if not resultado.get('author_name') and not resultado.get('publish_date'):
+                    continue 
+
+                primer_resultado_valido = resultado
+
+                if resultado.get('publish_date'):
+                    vals_para_actualizar['publicacion'] = resultado['publish_date'][0]
+                
+                if resultado.get('subject'):
+                    nombres_categorias = [cat for cat in resultado.get('subject', [])[:4]]
+                    if nombres_categorias:
+                        vals_para_actualizar['categoria'] = ", ".join(nombres_categorias)
+
+                if not self.isbn and resultado.get('isbn'):
+                    vals_para_actualizar['isbn'] = resultado['isbn'][0]
+
+                work_key = resultado.get('key')
+                if work_key:
+                    try:
+                        url_detalle = f"https://openlibrary.org{work_key}.json"
+                        response_detalle = requests.get(url_detalle, timeout=10)
+                        response_detalle.raise_for_status()
+                        data_detalle = response_detalle.json()
+                        
+                        description_info = data_detalle.get('description')
+                        
+                        if description_info:
+                            if isinstance(description_info, str):
+                                vals_para_actualizar['description'] = description_info
+                            elif isinstance(description_info, dict) and description_info.get('value'):
+                                vals_para_actualizar['description'] = description_info.get('value')
+                        
+                        break 
+                    except requests.exceptions.RequestException as e:
+                        _logger.warning(f"Error en segunda llamada API para la llave {work_key}: {e}")
+                        continue
+
+                break 
+
+            if primer_resultado_valido and primer_resultado_valido.get('author_name'):
+                lista_ids_autores = []
+                Autor = self.env['biblioteca.autor']
+                
+                for nombre_completo in primer_resultado_valido.get('author_name', []):
+                    autor_existente = Autor.search([('nombre_autor', '=', nombre_completo)], limit=1)
+                    if autor_existente:
+                        lista_ids_autores.append(autor_existente.id)
+                    else:
+                        nuevo_autor = Autor.create({'nombre_autor': nombre_completo})
+                        lista_ids_autores.append(nuevo_autor.id)
+                
+                if lista_ids_autores:
+                    vals_para_actualizar['autor_ids'] = [(6, 0, lista_ids_autores)]
+
+            if vals_para_actualizar:
+                _logger.info(f"Actualizando libro '{self.nombre_libro}' con datos: {vals_para_actualizar}")
+                self.write(vals_para_actualizar)
             else:
-                record.fecha_maxima = False
+                raise UserError(f"No se encontraron datos suficientes (autor, fecha) para autocompletar el libro '{self.nombre_libro}'.")
+
+        except requests.exceptions.RequestException as e:
+            _logger.error(f"Error al conectar con Open Library (búsqueda por título): {e}")
+            raise UserError(f"Error de conexión: {e}")
+        
+        return True
+
+    def buscar_isbn(self):
+        self.ensure_one()
+        if not self.isbn:
+           raise UserError ("Por favor, ingrese un ISBN antes de buscar.")
     
-class bibliotecamulta(models.Model):
+        isbn_limpio = self.isbn.strip().replace('-', '')
+        url = f"https://openlibrary.org/api/books?bibkeys=ISBN:{isbn_limpio}&format=json&jscmd=data"
     
-    _name = 'biblioteca.multa'
-    _description = 'biblioteca.multa'
-    
-    name = fields.Char(string="codigo de la multa")
-    multa = fields.Char(string="Descripción de la Multa")
-    prestamo = fields.Many2one('biblioteca.prestamo', string="Préstamo") #relación muchos a uno con préstamo
-    costo_multa = fields.Float(string="Costo de la Multa")
-    fecha_multa = fields.Date(string="Fecha de multa")
-    motivo = fields.selection(('pe', 'perdida'),
-                              ('re', 'retrasado'),
-                              ('da', 'daño'))
-    
-class biliotecaUsuario(models.Model):
-    _name = 'biblioteca.usuario'
-    _description = 'modelo de biblioteca.usuario'
-    
-    name = fields.Char(string="Nombre del Usuario")
-    contacto = fields.Char(string="Información de Contacto")
-    direccion = fields.Text(string="Dirección")
-    email = fields.Char(string="Correo Electrónico")
-    prestamos_ids = fields.One2many('biblioteca.prestamo', 'cliente_nombre', string="Préstamos del Usuario") #relación uno a muchos con préstamos
-    multas_ids = fields.One2many('biblioteca.multa', 'usuario_nombre', string="Multas del Usuario") #relación uno a muchos con multas
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            book_key = f"ISBN:{isbn_limpio}"
+
+            if not data or book_key not in data:
+                raise UserError(f"No se encontró información para el ISBN '{self.isbn}'.")
+
+            book_info = data[book_key]
+            vals_para_actualizar = {}
+
+            if book_info.get('title'):
+                vals_para_actualizar['nombre_libro'] = book_info.get('title')
+            if book_info.get('publish_date'):
+                vals_para_actualizar['publicacion'] = book_info.get('publish_date')
+            
+            if book_info.get('notes'):
+                vals_para_actualizar['description'] = book_info.get('notes')
+
+            if book_info.get('subjects'):
+                nombres_categorias = [cat.get('name') for cat in book_info.get('subjects', [])[:4]]
+                nombres_categorias = [name for name in nombres_categorias if name]
+                if nombres_categorias:
+                    vals_para_actualizar['categoria'] = ", ".join(nombres_categorias)
+
+            if book_info.get('authors'):
+                lista_ids_autores = []
+                Autor = self.env['biblioteca.autor']
+                
+                for autor_data in book_info['authors']:
+                    nombre_completo = autor_data['name']
+
+                    autor_existente = Autor.search([('nombre_autor', '=', nombre_completo)], limit=1)
+                    
+                    if autor_existente:
+                        lista_ids_autores.append(autor_existente.id)
+                    else:
+                        nuevo_autor = Autor.create({'nombre_autor': nombre_completo})
+                        lista_ids_autores.append(nuevo_autor.id)
+                
+                if lista_ids_autores:
+
+                    vals_para_actualizar['autor_ids'] = [(6, 0, lista_ids_autores)]
+
+            if vals_para_actualizar:
+                self.write(vals_para_actualizar)
+
+        except requests.exceptions.RequestException as e:
+            _logger.error(f"Error al conectar con Open Library: {e}")
+            raise UserError(f"Error de conexión: {e}")
+        
+        return True
+
+
+class BibliotecaUbicacion(models.Model):
+    _name='biblioteca.ubicacion'
+    _description='biblioteca.ubicacion'
+    _rec_name= 'ubicacion_libro'
+
+    ubicacion_libro= fields.Char(string='Ubicación Del libro', required=True)
+    codigo_ubicacion= fields.Char(string='Código/Abreviatura', required=True)
+    descripcion= fields.Text(string='Notas de Ubicación' , required=True)
